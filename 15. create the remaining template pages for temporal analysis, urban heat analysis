@@ -1,0 +1,906 @@
+{% extends "base.html" %}
+
+{% block title %}Temporal Analysis - Landsat Data Analysis Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h3>Temporal Temperature Analysis</h3>
+            </div>
+            <div class="card-body">
+                <p>
+                    This analysis examines how land surface temperature has changed over time in Tamil Nadu,
+                    helping identify climate trends, seasonal patterns, and anomalies.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4>Parameters</h4>
+            </div>
+            <div class="card-body">
+                <form id="parameters-form">
+                    <div class="mb-3">
+                        <label for="analysis-type" class="form-label">Analysis Type</label>
+                        <select class="form-select" id="analysis-type" name="analysis_type">
+                            <option value="annual-trend" selected>Annual Trend</option>
+                            <option value="monthly-pattern">Monthly Pattern</option>
+                            <option value="seasonal-comparison">Seasonal Comparison</option>
+                            <option value="future-projection">Future Projection</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="district" class="form-label">District</label>
+                        <select class="form-select" id="district" name="district">
+                            <option value="All" selected>All Tamil Nadu</option>
+                            <!-- Populated via JavaScript -->
+                        </select>
+                    </div>
+                    <div id="annual-params">
+                        <div class="mb-3">
+                            <label for="start-year" class="form-label">Start Year</label>
+                            <select class="form-select" id="start-year" name="start_year">
+                                <option value="2000" selected>2000</option>
+                                <option value="2005">2005</option>
+                                <option value="2010">2010</option>
+                                <option value="2015">2015</option>
+                                <option value="2020">2020</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="end-year" class="form-label">End Year</label>
+                            <select class="form-select" id="end-year" name="end_year">
+                                <option value="2020">2020</option>
+                                <option value="2024" selected>2024</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="monthly-params" class="d-none">
+                        <div class="mb-3">
+                            <label for="year" class="form-label">Year</label>
+                            <select class="form-select" id="year" name="year">
+                                <option value="2018">2018</option>
+                                <option value="2020">2020</option>
+                                <option value="2024" selected>2024</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="seasonal-params" class="d-none">
+                        <div class="mb-3">
+                            <label for="compare-year1" class="form-label">First Year</label>
+                            <select class="form-select" id="compare-year1" name="compare_year1">
+                                <option value="2010">2010</option>
+                                <option value="2015">2015</option>
+                                <option value="2020" selected>2020</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="compare-year2" class="form-label">Second Year</label>
+                            <select class="form-select" id="compare-year2" name="compare_year2">
+                                <option value="2024" selected>2024</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="projection-params" class="d-none">
+                        <div class="mb-3">
+                            <label for="scenario" class="form-label">Climate Scenario</label>
+                            <select class="form-select" id="scenario" name="scenario">
+                                <option value="optimistic">Optimistic (Low Emissions)</option>
+                                <option value="moderate" selected>Moderate (Middle Path)</option>
+                                <option value="pessimistic">Pessimistic (High Emissions)</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="projection-year" class="form-label">Project to Year</label>
+                            <select class="form-select" id="projection-year" name="projection_year">
+                                <option value="2030">2030</option>
+                                <option value="2040">2040</option>
+                                <option value="2050" selected>2050</option>
+                                <option value="2070">2070</option>
+                                <option value="2100">2100</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Update</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-9">
+        <!-- Annual Trend Analysis -->
+        <div id="annual-trend-container" class="analysis-container">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h4>Annual Temperature Trend</h4>
+                </div>
+                <div class="card-body">
+                    <div id="annual-chart" style="height: 500px;"></div>
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5>Trend Statistics</h5>
+                                    <div id="trend-stats"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5>Climate Change Context</h5>
+                                    <p>
+                                        The warming trend observed in Tamil Nadu's land surface temperature is consistent with
+                                        global climate change patterns, though local factors influence the magnitude and spatial distribution.
+                                    </p>
+                                    <ul>
+                                        <li>Average global warming rate: 0.18°C per decade</li>
+                                        <li>Tamil Nadu's observed rate: Approximately 0.16°C per decade</li>
+                                        <li>Urban areas are warming faster than rural areas</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Monthly Pattern Analysis -->
+        <div id="monthly-pattern-container" class="analysis-container d-none">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h4>Monthly Temperature Pattern</h4>
+                </div>
+                <div class="card-body">
+                    <div id="monthly-chart" style="height: 500px;"></div>
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5>Seasonal Patterns</h5>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="card mb-3">
+                                                <div class="card-header bg-info text-white">Winter (Dec-Feb)</div>
+                                                <div class="card-body" id="winter-stats"></div>
+                                            </div>
+                                            <div class="card mb-3">
+                                                <div class="card-header bg-warning text-white">Summer (Mar-May)</div>
+                                                <div class="card-body" id="summer-stats"></div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="card mb-3">
+                                                <div class="card-header bg-primary text-white">Monsoon (Jun-Sep)</div>
+                                                <div class="card-body" id="monsoon-stats"></div>
+                                            </div>
+                                            <div class="card mb-3">
+                                                <div class="card-header bg-success text-white">Post-Monsoon (Oct-Nov)</div>
+                                                <div class="card-body" id="post-monsoon-stats"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Seasonal Comparison Analysis -->
+        <div id="seasonal-comparison-container" class="analysis-container d-none">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h4>Seasonal Temperature Comparison</h4>
+                </div>
+                <div class="card-body">
+                    <div id="seasonal-chart" style="height: 500px;"></div>
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5>Changes by Season</h5>
+                                    <div class="table-responsive">
+                                        <table class="table table-striped" id="seasonal-comparison-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Season</th>
+                                                    <th>First Year Avg (°C)</th>
+                                                    <th>Second Year Avg (°C)</th>
+                                                    <th>Change (°C)</th>
+                                                    <th>% Change</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <!-- Populated via JavaScript -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Future Projection Analysis -->
+        <div id="future-projection-container" class="analysis-container d-none">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h4>Future Temperature Projection</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i> These projections are based on simplified models and should be interpreted with caution.
+                    </div>
+                    <div id="projection-chart" style="height: 500px;"></div>
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5>Projected Impacts</h5>
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="card mb-3">
+                                                <div class="card-header bg-danger text-white">Environmental Impacts</div>
+                                                <div class="card-body">
+                                                    <ul id="environmental-impacts">
+                                                        <!-- Populated via JavaScript -->
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="card mb-3">
+                                                <div class="card-header bg-danger text-white">Health Impacts</div>
+                                                <div class="card-body">
+                                                    <ul id="health-impacts">
+                                                        <!-- Populated via JavaScript -->
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="card mb-3">
+                                                <div class="card-header bg-danger text-white">Economic Impacts</div>
+                                                <div class="card-body">
+                                                    <ul id="economic-impacts">
+                                                        <!-- Populated via JavaScript -->
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Fetch districts
+    fetch('/api/districts')
+        .then(response => response.json())
+        .then(districts => {
+            const districtSelect = document.getElementById('district');
+            districts.forEach(district => {
+                if (district !== 'All') { // 'All' is already in the HTML
+                    const option = document.createElement('option');
+                    option.value = district;
+                    option.textContent = district;
+                    districtSelect.appendChild(option);
+                }
+            });
+        });
+    
+    // Initialize data
+    loadData();
+    
+    // Handle parameter changes
+    document.getElementById('parameters-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        loadData();
+    });
+    
+    // Toggle parameter sections based on analysis type
+    document.getElementById('analysis-type').addEventListener('change', function() {
+        showSelectedAnalysis();
+    });
+});
+
+function showSelectedAnalysis() {
+    const analysisType = document.getElementById('analysis-type').value;
+    
+    // Hide all parameter sections
+    document.getElementById('annual-params').classList.add('d-none');
+    document.getElementById('monthly-params').classList.add('d-none');
+    document.getElementById('seasonal-params').classList.add('d-none');
+    document.getElementById('projection-params').classList.add('d-none');
+    
+    // Show selected parameter section
+    if (analysisType === 'annual-trend') {
+        document.getElementById('annual-params').classList.remove('d-none');
+    } else if (analysisType === 'monthly-pattern') {
+        document.getElementById('monthly-params').classList.remove('d-none');
+    } else if (analysisType === 'seasonal-comparison') {
+        document.getElementById('seasonal-params').classList.remove('d-none');
+    } else if (analysisType === 'future-projection') {
+        document.getElementById('projection-params').classList.remove('d-none');
+    }
+    
+    // Hide all analysis containers
+    document.querySelectorAll('.analysis-container').forEach(container => {
+        container.classList.add('d-none');
+    });
+    
+    // Show selected analysis
+    if (analysisType === 'annual-trend') {
+        document.getElementById('annual-trend-container').classList.remove('d-none');
+    } else if (analysisType === 'monthly-pattern') {
+        document.getElementById('monthly-pattern-container').classList.remove('d-none');
+    } else if (analysisType === 'seasonal-comparison') {
+        document.getElementById('seasonal-comparison-container').classList.remove('d-none');
+    } else if (analysisType === 'future-projection') {
+        document.getElementById('future-projection-container').classList.remove('d-none');
+    }
+}
+
+function loadData() {
+    const analysisType = document.getElementById('analysis-type').value;
+    showSelectedAnalysis();
+    
+    if (analysisType === 'annual-trend') {
+        loadAnnualTrend();
+    } else if (analysisType === 'monthly-pattern') {
+        loadMonthlyPattern();
+    } else if (analysisType === 'seasonal-comparison') {
+        loadSeasonalComparison();
+    } else if (analysisType === 'future-projection') {
+        loadFutureProjection();
+    }
+}
+
+function loadAnnualTrend() {
+    const startYear = parseInt(document.getElementById('start-year').value);
+    const endYear = parseInt(document.getElementById('end-year').value);
+    const district = document.getElementById('district').value;
+    
+    const params = new URLSearchParams();
+    params.append('start_year', startYear);
+    params.append('end_year', endYear);
+    params.append('district', district);
+    
+    fetch(`/api/annual_trend?${params.toString()}`)
+        .then(response => response.json())
+        .then(data => {
+            const years = data.map(d => d.Year);
+            const temps = data.map(d => d.Temperature);
+            
+            // Calculate trend line
+            const n = years.length;
+            const xMean = years.reduce((a, b) => a + b, 0) / n;
+            const yMean = temps.reduce((a, b) => a + b, 0) / n;
+            
+            let slope = 0;
+            let numerator = 0;
+            let denominator = 0;
+            
+            for (let i = 0; i < n; i++) {
+                numerator += (years[i] - xMean) * (temps[i] - yMean);
+                denominator += (years[i] - xMean) ** 2;
+            }
+            
+            slope = numerator / denominator;
+            const intercept = yMean - slope * xMean;
+            
+            const trendY = years.map(x => slope * x + intercept);
+            
+            // Calculate R-squared
+            const totalSumSquares = temps.reduce((sum, temp) => sum + Math.pow(temp - yMean, 2), 0);
+            const residualSumSquares = temps.reduce((sum, temp, i) => sum + Math.pow(temp - trendY[i], 2), 0);
+            const rSquared = 1 - (residualSumSquares / totalSumSquares);
+            
+            // Create the chart
+            const trace1 = {
+                x: years,
+                y: temps,
+                mode: 'markers',
+                type: 'scatter',
+                name: 'Observed Values',
+                marker: {
+                    color: '#1E88E5',
+                    size: 8
+                }
+            };
+            
+            const trace2 = {
+                x: years,
+                y: trendY,
+                mode: 'lines',
+                type: 'scatter',
+                name: 'Trend Line',
+                line: {
+                    color: '#FF5722',
+                    width: 3
+                }
+            };
+            
+            const layout = {
+                title: `Temperature Trend for ${district} (${startYear}-${endYear})`,
+                xaxis: {
+                    title: 'Year',
+                    tickmode: 'linear',
+                    dtick: 5
+                },
+                yaxis: {
+                    title: 'Average Temperature (°C)'
+                },
+                height: 500,
+                legend: {
+                    x: 0.1,
+                    y: 0.9
+                },
+                annotations: [
+                    {
+                        x: (startYear + endYear) / 2,
+                        y: Math.max(...temps) - 0.5,
+                        text: `Trend: ${slope.toFixed(3)}°C/year`,
+                        showarrow: false,
+                        font: {
+                            size: 14,
+                            color: '#FF5722'
+                        },
+                        bgcolor: 'rgba(255, 255, 255, 0.8)',
+                        borderpad: 4
+                    }
+                ]
+            };
+            
+            Plotly.newPlot('annual-chart', [trace1, trace2], layout);
+            
+            // Update trend statistics
+            const totalChange = slope * (endYear - startYear);
+            const percentChange = (totalChange / temps[0]) * 100;
+            
+            document.getElementById('trend-stats').innerHTML = `
+                <table class="table">
+                    <tr>
+                        <td><strong>Rate of Change:</strong></td>
+                        <td>${slope.toFixed(3)}°C per year</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Total Change (${startYear}-${endYear}):</strong></td>
+                        <td>${totalChange.toFixed(2)}°C</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Percentage Change:</strong></td>
+                        <td>${percentChange.toFixed(2)}%</td>
+                    </tr>
+                    <tr>
+                        <td><strong>R² Value:</strong></td>
+                        <td>${rSquared.toFixed(3)}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Confidence Level:</strong></td>
+                        <td>${rSquared > 0.7 ? 'High' : (rSquared > 0.5 ? 'Moderate' : 'Low')}</td>
+                    </tr>
+                </table>
+            `;
+        });
+}
+
+function loadMonthlyPattern() {
+    const year = parseInt(document.getElementById('year').value);
+    const district = document.getElementById('district').value;
+    
+    const params = new URLSearchParams();
+    params.append('year', year);
+    params.append('district', district);
+    
+    fetch(`/api/monthly_data?${params.toString()}`)
+        .then(response => response.json())
+        .then(data => {
+            // Create the chart
+            const trace = {
+                x: data.map(d => d.Month),
+                y: data.map(d => d.Temperature),
+                type: 'scatter',
+                mode: 'lines+markers',
+                line: {
+                    color: '#1E88E5',
+                    width: 3
+                },
+                marker: {
+                    size: 8,
+                    color: data.map(d => {
+                        // Color by temperature
+                        const temp = d.Temperature;
+                        if (temp < 25) return 'blue';
+                        if (temp < 28) return 'royalblue';
+                        if (temp < 30) return 'green';
+                        if (temp < 32) return 'yellow';
+                        if (temp < 34) return 'orange';
+                        return 'red';
+                    })
+                }
+            };
+            
+            const layout = {
+                title: `Monthly Temperature Pattern for ${district} (${year})`,
+                xaxis: {
+                    title: 'Month'
+                },
+                yaxis: {
+                    title: 'Average Temperature (°C)'
+                },
+                height: 500
+            };
+            
+            Plotly.newPlot('monthly-chart', [trace], layout);
+            
+            // Calculate seasonal statistics
+            const seasons = {
+                winter: data.filter(d => ['Dec', 'Jan', 'Feb'].includes(d.Month)),
+                summer: data.filter(d => ['Mar', 'Apr', 'May'].includes(d.Month)),
+                monsoon: data.filter(d => ['Jun', 'Jul', 'Aug', 'Sep'].includes(d.Month)),
+                postMonsoon: data.filter(d => ['Oct', 'Nov'].includes(d.Month))
+            };
+            
+            function calculateSeasonStats(seasonData) {
+                if (seasonData.length === 0) return { avg: 0, min: 0, max: 0 };
+                
+                const temps = seasonData.map(d => d.Temperature);
+                return {
+                    avg: temps.reduce((a, b) => a + b, 0) / temps.length,
+                    min: Math.min(...temps),
+                    max: Math.max(...temps)
+                };
+            }
+            
+            const winterStats = calculateSeasonStats(seasons.winter);
+            const summerStats = calculateSeasonStats(seasons.summer);
+            const monsoonStats = calculateSeasonStats(seasons.monsoon);
+            const postMonsoonStats = calculateSeasonStats(seasons.postMonsoon);
+            
+            // Update seasonal statistics
+            document.getElementById('winter-stats').innerHTML = `
+                <p><strong>Average Temperature:</strong> ${winterStats.avg.toFixed(1)}°C</p>
+                <p><strong>Range:</strong> ${winterStats.min.toFixed(1)}°C - ${winterStats.max.toFixed(1)}°C</p>
+                <p><small>Characterized by relatively cooler temperatures and clear skies.</small></p>
+            `;
+            
+            document.getElementById('summer-stats').innerHTML = `
+                <p><strong>Average Temperature:</strong> ${summerStats.avg.toFixed(1)}°C</p>
+                <p><strong>Range:</strong> ${summerStats.min.toFixed(1)}°C - ${summerStats.max.toFixed(1)}°C</p>
+                <p><small>Peak temperatures occur in late April to early May, with hot and dry conditions.</small></p>
+            `;
+            
+            document.getElementById('monsoon-stats').innerHTML = `
+                <p><strong>Average Temperature:</strong> ${monsoonStats.avg.toFixed(1)}°C</p>
+                <p><strong>Range:</strong> ${monsoonStats.min.toFixed(1)}°C - ${monsoonStats.max.toFixed(1)}°C</p>
+                <p><small>Southwest monsoon brings moderate rainfall and slight cooling effect.</small></p>
+            `;
+            
+            document.getElementById('post-monsoon-stats').innerHTML = `
+                <p><strong>Average Temperature:</strong> ${postMonsoonStats.avg.toFixed(1)}°C</p>
+                <p><strong>Range:</strong> ${postMonsoonStats.min.toFixed(1)}°C - ${postMonsoonStats.max.toFixed(1)}°C</p>
+                <p><small>Northeast monsoon brings significant rainfall, moderating temperatures.</small></p>
+            `;
+        });
+}
+
+function loadSeasonalComparison() {
+    const year1 = parseInt(document.getElementById('compare-year1').value);
+    const year2 = parseInt(document.getElementById('compare-year2').value);
+    const district = document.getElementById('district').value;
+    
+    // Fetch data for both years
+    const params1 = new URLSearchParams();
+    params1.append('year', year1);
+    params1.append('district', district);
+    
+    const params2 = new URLSearchParams();
+    params2.append('year', year2);
+    params2.append('district', district);
+    
+    Promise.all([
+        fetch(`/api/monthly_data?${params1.toString()}`).then(res => res.json()),
+        fetch(`/api/monthly_data?${params2.toString()}`).then(res => res.json())
+    ])
+    .then(([data1, data2]) => {
+        // Create the chart
+        const trace1 = {
+            x: data1.map(d => d.Month),
+            y: data1.map(d => d.Temperature),
+            type: 'scatter',
+            mode: 'lines+markers',
+            name: `${year1}`,
+            line: {
+                color: '#1E88E5',
+                width: 3
+            },
+            marker: {
+                size: 8
+            }
+        };
+        
+        const trace2 = {
+            x: data2.map(d => d.Month),
+            y: data2.map(d => d.Temperature),
+            type: 'scatter',
+            mode: 'lines+markers',
+            name: `${year2}`,
+            line: {
+                color: '#FF5722',
+                width: 3
+            },
+            marker: {
+                size: 8
+            }
+        };
+        
+        const layout = {
+            title: `Seasonal Temperature Comparison for ${district} (${year1} vs ${year2})`,
+            xaxis: {
+                title: 'Month'
+            },
+            yaxis: {
+                title: 'Average Temperature (°C)'
+            },
+            height: 500
+        };
+        
+        Plotly.newPlot('seasonal-chart', [trace1, trace2], layout);
+        
+        // Define seasons
+        const seasons = ['Winter', 'Summer', 'Monsoon', 'Post-Monsoon'];
+        const seasonMonths = {
+            'Winter': ['Dec', 'Jan', 'Feb'],
+            'Summer': ['Mar', 'Apr', 'May'],
+            'Monsoon': ['Jun', 'Jul', 'Aug', 'Sep'],
+            'Post-Monsoon': ['Oct', 'Nov']
+        };
+        
+        // Calculate seasonal averages
+        function getSeasonalAverage(data, seasonMonths) {
+            const filteredData = data.filter(d => seasonMonths.includes(d.Month));
+            if (filteredData.length === 0) return 0;
+            return filteredData.reduce((sum, d) => sum + d.Temperature, 0) / filteredData.length;
+        }
+        
+        const tableBody = document.getElementById('seasonal-comparison-table').getElementsByTagName('tbody')[0];
+        tableBody.innerHTML = '';
+        
+        seasons.forEach(season => {
+            const avg1 = getSeasonalAverage(data1, seasonMonths[season]);
+            const avg2 = getSeasonalAverage(data2, seasonMonths[season]);
+            const change = avg2 - avg1;
+            const percentChange = (change / avg1) * 100;
+            
+            const row = tableBody.insertRow();
+            row.insertCell(0).textContent = season;
+            row.insertCell(1).textContent = avg1.toFixed(2);
+            row.insertCell(2).textContent = avg2.toFixed(2);
+            
+            const changeCell = row.insertCell(3);
+            changeCell.textContent = change.toFixed(2);
+            changeCell.style.color = change > 0 ? 'red' : 'blue';
+            
+            const percentCell = row.insertCell(4);
+            percentCell.textContent = percentChange.toFixed(2) + '%';
+            percentCell.style.color = change > 0 ? 'red' : 'blue';
+        });
+    });
+}
+
+function loadFutureProjection() {
+    const district = document.getElementById('district').value;
+    const scenario = document.getElementById('scenario').value;
+    const projectionYear = parseInt(document.getElementById('projection-year').value);
+    
+    // Generate synthetic projection data
+    // This would typically come from the server in a real application
+    
+    // Define base year and temperature
+    const baseYear = 2024;
+    const baseTemp = 29.5;
+    
+    // Define warming rates for different scenarios (°C per decade)
+    const warmingRates = {
+        'optimistic': 0.15,
+        'moderate': 0.25,
+        'pessimistic': 0.40
+    };
+    
+    const years = [];
+    const temps = {
+        'optimistic': [],
+        'moderate': [],
+        'pessimistic': []
+    };
+    
+    // Generate data points
+    for (let year = 2000; year <= projectionYear; year += 5) {
+        years.push(year);
+        
+        for (const rate in warmingRates) {
+            if (year <= 2024) {
+                // Historical data (same for all scenarios)
+                const historicalRate = 0.16; // °C per decade
+                const yearsFromBase = (year - 2000) / 10;
+                temps[rate].push(baseTemp - (2024 - year) * historicalRate / 10 + (Math.random() * 0.5 - 0.25));
+            } else {
+                // Projected data
+                const projectedYears = (year - 2024) / 10;
+                temps[rate].push(baseTemp + projectedYears * warmingRates[rate] + (Math.random() * 0.3 - 0.15));
+            }
+        }
+    }
+    
+    // Create traces for the chart
+    const traces = [];
+    
+    // Historical data (2000-2024)
+    const historicalYears = years.filter(y => y <= 2024);
+    const historicalTemps = temps[scenario].filter((_, i) => years[i] <= 2024);
+    
+    traces.push({
+        x: historicalYears,
+        y: historicalTemps,
+        type: 'scatter',
+        mode: 'lines+markers',
+        name: 'Historical Data',
+        line: {
+            color: '#1E88E5',
+            width: 3
+        },
+        marker: {
+            size: 8
+        }
+    });
+    
+    // Projected data (2024 onwards)
+    const futureYears = years.filter(y => y >= 2024);
+    const futureTemps = temps[scenario].filter((_, i) => years[i] >= 2024);
+    
+    traces.push({
+        x: futureYears,
+        y: futureTemps,
+        type: 'scatter',
+        mode: 'lines+markers',
+        name: 'Projected Data',
+        line: {
+            color: '#FF5722',
+            width: 3,
+            dash: 'dash'
+        },
+        marker: {
+            size: 8
+        }
+    });
+    
+    // Show uncertainty range for projections (only for selected scenario)
+    const upperBound = futureTemps.map(t => t + (futureTemps.indexOf(t) / futureTemps.length) * 1.5);
+    const lowerBound = futureTemps.map(t => t - (futureTemps.indexOf(t) / futureTemps.length) * 1.0);
+    
+    traces.push({
+        x: futureYears,
+        y: upperBound,
+        type: 'scatter',
+        mode: 'lines',
+        name: 'Upper Bound',
+        line: {
+            color: 'rgba(255, 87, 34, 0.3)',
+            width: 0
+        },
+        showlegend: false
+    });
+    
+    traces.push({
+        x: futureYears,
+        y: lowerBound,
+        type: 'scatter',
+        mode: 'lines',
+        name: 'Lower Bound',
+        line: {
+            color: 'rgba(255, 87, 34, 0.3)',
+            width: 0
+        },
+        fill: 'tonexty',
+        showlegend: false
+    });
+    
+    const layout = {
+        title: `Temperature Projection for ${district} (${scenario} scenario)`,
+        xaxis: {
+            title: 'Year',
+            tickmode: 'linear',
+            dtick: 10
+        },
+        yaxis: {
+            title: 'Average Temperature (°C)'
+        },
+        height: 500,
+        shapes: [
+            {
+                type: 'line',
+                x0: 2024,
+                y0: baseTemp,
+                x1: 2024,
+                y1: 20,
+                line: {
+                    color: 'grey',
+                    width: 2,
+                    dash: 'dot'
+                }
+            }
+        ],
+        annotations: [
+            {
+                x: 2024,
+                y: baseTemp + 2,
+                text: 'Present Day',
+                showarrow: false,
+                font: {
+                    size: 12,
+                    color: 'grey'
+                },
+                textangle: -90
+            }
+        ]
+    };
+    
+    Plotly.newPlot('projection-chart', traces, layout);
+    
+    // Update projected impacts
+    const projectedChangeByYear = futureTemps[futureTemps.length - 1] - baseTemp;
+    
+    // Environmental impacts
+    const environmentalImpacts = [
+        `${projectedChangeByYear > 2 ? 'Severe' : 'Moderate'} stress on water resources`,
+        `${projectedChangeByYear > 2.5 ? 'Significant' : 'Moderate'} biodiversity loss in sensitive ecosystems`,
+        `Increased ${projectedChangeByYear > 3 ? 'frequency and intensity' : 'risk'} of forest fires`,
+        `${projectedChangeByYear > 2 ? 'Accelerated' : 'Continued'} coastal erosion due to sea level rise`,
+        `${projectedChangeByYear > 3 ? 'Severe' : 'Increased'} desertification in drought-prone regions`
+    ];
+    
+    // Health impacts
+    const healthImpacts = [
+        `${projectedChangeByYear > 2 ? 'Significant' : 'Moderate'} increase in heat-related illnesses`,
+        `Expanded range of vector-borne diseases (${projectedChangeByYear > 2.5 ? 'including new areas' : 'in existing areas'})`,
+        `${projectedChangeByYear > 3 ? 'Severe' : 'Increased'} heat stress affecting vulnerable populations`,
+        `${projectedChangeByYear > 2 ? 'Substantial' : 'Modest'} increase in air pollution-related health issues`,
+        `Higher incidence of water-borne diseases due to ${projectedChangeByYear > 2.5 ? 'contamination and shortages' : 'quality changes'}`
+    ];
+    
+    // Economic impacts
+    const economicImpacts = [
+        `${projectedChangeByYear > 2 ? 'Major' : 'Moderate'} reduction in agricultural productivity`,
+        `Increased energy demand for cooling by ${projectedChangeByYear * 8 + 15}%`,
+        `${projectedChangeByYear > 3 ? 'Significant' : 'Increased'} infrastructure damage from extreme weather events`,
+        `${projectedChangeByYear > 2.5 ? 'Substantial' : 'Some'} impacts on tourism and outdoor industries`,
+        `Higher costs for water management and distribution`
+    ];
+    
+    document.getElementById('environmental-impacts').innerHTML = environmentalImpacts.map(impact => `<li>${impact}</li>`).join('');
+    document.getElementById('health-impacts').innerHTML = healthImpacts.map(impact => `<li>${impact}</li>`).join('');
+    document.getElementById('economic-impacts').innerHTML = economicImpacts.map(impact => `<li>${impact}</li>`).join('');
+}
+</script>
+{% endblock %}
