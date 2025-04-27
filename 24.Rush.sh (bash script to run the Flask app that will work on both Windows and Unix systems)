@@ -1,0 +1,42 @@
+#!/bin/bash
+# Script to run the Flask application
+
+# Check if Python is installed
+if command -v python3 &>/dev/null; then
+    # Python 3 is available
+    PYTHON=python3
+elif command -v python &>/dev/null; then
+    # Fall back to just "python" command
+    PYTHON=python
+else
+    echo "Error: Python is not installed or not in your PATH."
+    exit 1
+fi
+
+# Check if the virtual environment exists
+if [ -d "venv" ]; then
+    # Activate the virtual environment
+    case "$(uname -s)" in
+        CYGWIN*|MINGW*|MSYS*)
+            # Windows
+            source venv/Scripts/activate
+            ;;
+        *)
+            # Unix-like
+            source venv/bin/activate
+            ;;
+    esac
+    echo "Activated virtual environment."
+else
+    echo "Warning: Virtual environment 'venv' not found."
+    echo "Consider creating a virtual environment with: python -m venv venv"
+fi
+
+# Run the Flask application
+echo "Starting Flask application..."
+$PYTHON run_flask_app.py
+
+# Deactivate virtual environment when script exits
+if [ -d "venv" ]; then
+    deactivate 2>/dev/null
+fi
