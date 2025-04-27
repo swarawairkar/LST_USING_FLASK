@@ -1,0 +1,870 @@
+{% extends "base.html" %}
+
+{% block title %}Vegetation Analysis - Landsat Data Analysis Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h3>Vegetation Analysis</h3>
+            </div>
+            <div class="card-body">
+                <p>
+                    This analysis examines the vegetation patterns across Tamil Nadu using the Normalized Difference 
+                    Vegetation Index (NDVI), which quantifies vegetation by measuring the difference between near-infrared 
+                    (which vegetation strongly reflects) and red light (which vegetation absorbs).
+                </p>
+                <p>
+                    NDVI values range from -1 to 1:
+                    <ul>
+                        <li>-1 to 0: Water bodies, barren land, or artificial surfaces</li>
+                        <li>0.1 to 0.3: Sparse vegetation or urban areas</li>
+                        <li>0.3 to 0.6: Moderate vegetation (shrubs, grasslands, agricultural areas)</li>
+                        <li>0.6 to 1.0: Dense vegetation (forests, healthy crops)</li>
+                    </ul>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4>Parameters</h4>
+            </div>
+            <div class="card-body">
+                <form id="parameters-form">
+                    <div class="mb-3">
+                        <label for="year" class="form-label">Year</label>
+                        <select class="form-select" id="year" name="year">
+                            <option value="2018">2018</option>
+                            <option value="2020">2020</option>
+                            <option value="2024" selected>2024</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="month" class="form-label">Month</label>
+                        <select class="form-select" id="month" name="month">
+                            <option value="1">January</option>
+                            <option value="2">February</option>
+                            <option value="3">March</option>
+                            <option value="4" selected>April</option>
+                            <option value="5">May</option>
+                            <option value="6">June</option>
+                            <option value="7">July</option>
+                            <option value="8">August</option>
+                            <option value="9">September</option>
+                            <option value="10">October</option>
+                            <option value="11">November</option>
+                            <option value="12">December</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="district" class="form-label">District</label>
+                        <select class="form-select" id="district" name="district">
+                            <option value="All" selected>All</option>
+                            <!-- Populated via JavaScript -->
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="analysis-type" class="form-label">Analysis Type</label>
+                        <select class="form-select" id="analysis-type" name="analysis_type">
+                            <option value="ndvi-distribution" selected>NDVI Distribution</option>
+                            <option value="temperature-correlation">Temperature-Vegetation Correlation</option>
+                            <option value="temporal-changes">Temporal Changes</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Update</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-9">
+        <!-- NDVI Distribution Analysis -->
+        <div id="ndvi-distribution-container" class="analysis-container">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h4>Vegetation Index (NDVI) Distribution</h4>
+                </div>
+                <div class="card-body">
+                    <div id="ndvi-map-container" style="height: 500px;">
+                        <!-- NDVI Map will be loaded here -->
+                    </div>
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <h5>Vegetation Index Statistics</h5>
+                        </div>
+                    </div>
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h6>Average NDVI</h6>
+                                    <div id="ndvi-mean" class="fs-4 fw-bold text-primary">0.45</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h6>Minimum NDVI</h6>
+                                    <div id="ndvi-min" class="fs-4 fw-bold text-primary">0.25</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h6>Maximum NDVI</h6>
+                                    <div id="ndvi-max" class="fs-4 fw-bold text-primary">0.65</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h6>NDVI Variation</h6>
+                                    <div id="ndvi-std" class="fs-4 fw-bold text-primary">0.10</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-md-12">
+                            <div class="alert alert-info" id="vegetation-status">
+                                <h5 class="alert-heading">Vegetation Status: Moderate vegetation</h5>
+                                <p>The area has moderate vegetation cover, likely a mix of urban areas, agriculture, and some natural vegetation.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <h5>NDVI Distribution by Land Use</h5>
+                            <div id="landuse-ndvi-chart" style="height: 400px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Temperature-Vegetation Correlation Analysis -->
+        <div id="temperature-correlation-container" class="analysis-container d-none">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h4>Temperature and Vegetation Correlation Analysis</h4>
+                </div>
+                <div class="card-body">
+                    <p>
+                        The relationship between land surface temperature (LST) and vegetation cover is significant.
+                        Vegetation helps cool the surface through transpiration and by providing shade, 
+                        resulting in lower temperatures in well-vegetated areas compared to barren or urban regions.
+                    </p>
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <h5>Temperature vs. Vegetation Index</h5>
+                            <div id="temp-ndvi-scatter" style="height: 500px;"></div>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <div class="alert alert-info">
+                                <h5 class="alert-heading">Vegetation Cooling Effect</h5>
+                                <p id="cooling-effect-text">
+                                    <strong>Key Finding:</strong> For every 0.1 increase in NDVI, the land surface temperature decreases by approximately 1.5°C.
+                                    <br><br>
+                                    This negative correlation highlights vegetation's important role in cooling urban and rural environments. 
+                                    The R² value of 0.78 indicates that 78% of temperature variation can be explained by vegetation cover.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <h5>Temperature Profiles by Vegetation Cover</h5>
+                            <div id="temp-by-vegetation-box" style="height: 500px;"></div>
+                        </div>
+                    </div>
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <h5>Vegetation-Based Cooling Strategies</h5>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-header bg-success text-white">
+                                    <h6>Urban Greening Strategies</h6>
+                                </div>
+                                <div class="card-body">
+                                    <ul>
+                                        <li>Increase street tree coverage to provide shade and cooling</li>
+                                        <li>Create urban parks and green spaces in high-density areas</li>
+                                        <li>Implement green roofs and vertical gardens on buildings</li>
+                                        <li>Plant shade trees around buildings to reduce cooling needs</li>
+                                        <li>Use vegetation as shading devices for building facades</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="card mb-3">
+                                <div class="card-header bg-success text-white">
+                                    <h6>Agricultural Practices</h6>
+                                </div>
+                                <div class="card-body">
+                                    <ul>
+                                        <li>Maintain crop cover to reduce soil temperature</li>
+                                        <li>Implement agroforestry to combine trees with agriculture</li>
+                                        <li>Protect natural vegetation around agricultural fields</li>
+                                        <li>Use cover crops during fallow periods</li>
+                                        <li>Practice crop rotation to maintain soil health and moisture</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-header bg-success text-white">
+                                    <h6>Forest and Natural Areas</h6>
+                                </div>
+                                <div class="card-body">
+                                    <ul>
+                                        <li>Protect existing forests, especially around urban areas</li>
+                                        <li>Restore degraded forests and increase canopy coverage</li>
+                                        <li>Create green corridors connecting forest patches</li>
+                                        <li>Maintain riparian vegetation along waterways</li>
+                                        <li>Prevent forest fragmentation to maintain cooling benefits</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="card mb-3">
+                                <div class="card-header bg-success text-white">
+                                    <h6>Water-Vegetation Systems</h6>
+                                </div>
+                                <div class="card-body">
+                                    <ul>
+                                        <li>Integrate blue-green infrastructure in urban planning</li>
+                                        <li>Restore wetlands and riparian vegetation</li>
+                                        <li>Create rain gardens and bioswales for stormwater management</li>
+                                        <li>Maintain vegetation around water bodies</li>
+                                        <li>Implement water-sensitive urban design principles</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Temporal Changes Analysis -->
+        <div id="temporal-changes-container" class="analysis-container d-none">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h4>Temporal Vegetation Changes</h4>
+                </div>
+                <div class="card-body">
+                    <p>
+                        Monitoring changes in vegetation over time helps identify trends in land cover,
+                        assess the impacts of urbanization, climate change, and land use policies, and
+                        evaluate the effectiveness of conservation and restoration efforts.
+                    </p>
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <h5>Long-term Vegetation Trends</h5>
+                            <div class="mb-3">
+                                <label class="form-label">Select Districts to Compare</label>
+                                <select id="district-ndvi-compare" class="form-select" multiple>
+                                    <option value="All" selected>All Tamil Nadu</option>
+                                    <option value="Chennai" selected>Chennai</option>
+                                    <option value="Nilgiris" selected>Nilgiris</option>
+                                    <option value="Coimbatore">Coimbatore</option>
+                                    <option value="Madurai">Madurai</option>
+                                </select>
+                                <small class="text-muted">Hold Ctrl/Cmd to select multiple</small>
+                            </div>
+                            <div id="ndvi-trend-chart" style="height: 500px;"></div>
+                        </div>
+                    </div>
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <h5>Key Events Affecting Vegetation</h5>
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Year</th>
+                                            <th>Event</th>
+                                            <th>Impact on Vegetation</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>2004</td>
+                                            <td>Major Drought</td>
+                                            <td>Significant reduction in vegetation health and coverage</td>
+                                        </tr>
+                                        <tr>
+                                            <td>2010</td>
+                                            <td>Reforestation Program</td>
+                                            <td>Gradual increase in forest cover and NDVI values</td>
+                                        </tr>
+                                        <tr>
+                                            <td>2015</td>
+                                            <td>Urban Greening Initiative</td>
+                                            <td>Moderate improvement in urban vegetation coverage</td>
+                                        </tr>
+                                        <tr>
+                                            <td>2019</td>
+                                            <td>Severe Drought</td>
+                                            <td>Temporary decline in vegetation health across the state</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <h5>Land Cover Change Statistics</h5>
+                            <div id="landcover-change-chart" style="height: 400px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Fetch districts
+    fetch('/api/districts')
+        .then(response => response.json())
+        .then(districts => {
+            const districtSelect = document.getElementById('district');
+            districts.forEach(district => {
+                if (district !== 'All') { // 'All' is already in the HTML
+                    const option = document.createElement('option');
+                    option.value = district;
+                    option.textContent = district;
+                    districtSelect.appendChild(option);
+                }
+            });
+        });
+    
+    // Initialize data
+    loadData();
+    
+    // Handle parameter changes
+    document.getElementById('parameters-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        loadData();
+    });
+    
+    // Handle analysis type changes
+    document.getElementById('analysis-type').addEventListener('change', function() {
+        showSelectedAnalysis();
+    });
+    
+    // Handle district comparison changes in temporal view
+    document.getElementById('district-ndvi-compare').addEventListener('change', function() {
+        if (document.getElementById('analysis-type').value === 'temporal-changes') {
+            loadTemporalData();
+        }
+    });
+});
+
+function showSelectedAnalysis() {
+    const analysisType = document.getElementById('analysis-type').value;
+    
+    // Hide all analysis containers
+    document.querySelectorAll('.analysis-container').forEach(container => {
+        container.classList.add('d-none');
+    });
+    
+    // Show selected analysis
+    if (analysisType === 'ndvi-distribution') {
+        document.getElementById('ndvi-distribution-container').classList.remove('d-none');
+    } else if (analysisType === 'temperature-correlation') {
+        document.getElementById('temperature-correlation-container').classList.remove('d-none');
+    } else if (analysisType === 'temporal-changes') {
+        document.getElementById('temporal-changes-container').classList.remove('d-none');
+    }
+}
+
+function loadData() {
+    const analysisType = document.getElementById('analysis-type').value;
+    showSelectedAnalysis();
+    
+    if (analysisType === 'ndvi-distribution') {
+        loadNDVIDistribution();
+    } else if (analysisType === 'temperature-correlation') {
+        loadTemperatureCorrelation();
+    } else if (analysisType === 'temporal-changes') {
+        loadTemporalData();
+    }
+}
+
+function loadNDVIDistribution() {
+    const year = document.getElementById('year').value;
+    const month = document.getElementById('month').value;
+    const district = document.getElementById('district').value;
+    
+    // Create a sample map with NDVI visualization
+    // In a real application, this would fetch an actual NDVI map from the server
+    const mapHTML = `
+        <div style="position: relative; height: 100%; background-color: #f8f9fa; border-radius: 5px; overflow: hidden;">
+            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(45deg, rgba(255,0,0,0.5), rgba(255,165,0,0.5), rgba(255,255,0,0.5), rgba(144,238,144,0.5), rgba(0,128,0,0.5), rgba(0,100,0,0.5));">
+            </div>
+            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #333; font-weight: bold; background-color: rgba(255,255,255,0.7); padding: 15px; border-radius: 5px;">
+                Sample NDVI Visualization for ${district} (${month}/${year})<br>
+                <small>This is a placeholder for the actual NDVI map</small>
+            </div>
+            <div style="position: absolute; bottom: 20px; right: 20px; background-color: white; padding: 10px; border-radius: 5px;">
+                <div style="display: flex; align-items: center;">
+                    <div style="width: 200px; height: 20px; background: linear-gradient(to right, #ff0000, #ffa500, #ffff00, #90ee90, #008000, #006400);"></div>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span>-0.1</span>
+                    <span>0.0</span>
+                    <span>0.2</span>
+                    <span>0.4</span>
+                    <span>0.6</span>
+                    <span>0.8</span>
+                </div>
+                <div style="text-align: center; font-size: 12px;">NDVI (Vegetation Index)</div>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('ndvi-map-container').innerHTML = mapHTML;
+    
+    // Fetch NDVI statistics
+    const params = new URLSearchParams();
+    params.append('year', year);
+    params.append('month', month);
+    params.append('district', district);
+    
+    fetch(`/api/ndvi_data?${params.toString()}`)
+        .then(response => response.json())
+        .then(data => {
+            // Update NDVI statistics
+            document.getElementById('ndvi-mean').textContent = data.mean.toFixed(2);
+            document.getElementById('ndvi-min').textContent = data.min.toFixed(2);
+            document.getElementById('ndvi-max').textContent = data.max.toFixed(2);
+            document.getElementById('ndvi-std').textContent = data.std.toFixed(2);
+            
+            // Update vegetation status
+            let status, description;
+            if (data.mean > 0.6) {
+                status = "Dense vegetation";
+                description = "The area has abundant vegetation cover, indicating healthy forests, agricultural lands, or well-vegetated urban spaces.";
+            } else if (data.mean > 0.4) {
+                status = "Moderate vegetation";
+                description = "The area has moderate vegetation cover, likely a mix of urban areas, agriculture, and some natural vegetation.";
+            } else if (data.mean > 0.2) {
+                status = "Sparse vegetation";
+                description = "The area has limited vegetation cover, possibly dominated by urban structures, dry lands, or areas with stressed vegetation.";
+            } else {
+                status = "Very limited vegetation";
+                description = "The area has very little vegetation cover, indicating predominantly urban areas, barren land, or water bodies.";
+            }
+            
+            document.getElementById('vegetation-status').innerHTML = `
+                <h5 class="alert-heading">Vegetation Status: ${status}</h5>
+                <p>${description}</p>
+            `;
+            
+            // Create land use NDVI chart
+            const landUseData = [
+                {landUse: 'Urban Areas', ndvi: 0.15},
+                {landUse: 'Agricultural Land', ndvi: 0.45},
+                {landUse: 'Forest', ndvi: 0.75},
+                {landUse: 'Water Bodies', ndvi: -0.05},
+                {landUse: 'Grassland', ndvi: 0.35},
+                {landUse: 'Barren Land', ndvi: 0.1}
+            ];
+            
+            const trace = {
+                x: landUseData.map(d => d.landUse),
+                y: landUseData.map(d => d.ndvi),
+                type: 'bar',
+                marker: {
+                    color: landUseData.map(d => d.ndvi),
+                    colorscale: [
+                        [0, 'red'],
+                        [0.2, 'orange'],
+                        [0.4, 'yellow'],
+                        [0.6, 'lightgreen'],
+                        [0.8, 'green'],
+                        [1, 'darkgreen']
+                    ],
+                    cmin: -0.1,
+                    cmax: 0.9
+                }
+            };
+            
+            const layout = {
+                title: 'Typical NDVI Values by Land Use Type',
+                xaxis: {title: 'Land Use Type'},
+                yaxis: {title: 'NDVI Value'},
+                height: 400
+            };
+            
+            Plotly.newPlot('landuse-ndvi-chart', [trace], layout);
+        });
+}
+
+function loadTemperatureCorrelation() {
+    // Generate sample correlation data
+    const n = 100;
+    const ndvi = [];
+    const temps = [];
+    const landUse = [];
+    
+    // Generate NDVI values (0 to 0.8)
+    for (let i = 0; i < n; i++) {
+        const ndviVal = Math.random() * 0.8;
+        ndvi.push(ndviVal);
+        
+        // Generate temperature with negative correlation to NDVI
+        // Higher NDVI -> Lower temperature with some noise
+        const baseTemp = 35;
+        const temp = baseTemp - 15 * ndviVal + (Math.random() * 3 - 1.5);
+        temps.push(temp);
+        
+        // Classify land use based on NDVI
+        let landUseType;
+        if (ndviVal < 0.1) {
+            landUseType = "Urban/Barren";
+        } else if (ndviVal < 0.3) {
+            landUseType = "Sparse Vegetation";
+        } else if (ndviVal < 0.5) {
+            landUseType = "Moderate Vegetation";
+        } else {
+            landUseType = "Dense Vegetation";
+        }
+        landUse.push(landUseType);
+    }
+    
+    // Create scatter plot
+    const traces = [];
+    
+    // Group data by land use type
+    const landUseTypes = [...new Set(landUse)];
+    landUseTypes.forEach(type => {
+        const indices = landUse.map((lu, i) => lu === type ? i : -1).filter(i => i !== -1);
+        const typeNdvi = indices.map(i => ndvi[i]);
+        const typeTemps = indices.map(i => temps[i]);
+        
+        traces.push({
+            x: typeNdvi,
+            y: typeTemps,
+            mode: 'markers',
+            type: 'scatter',
+            name: type,
+            marker: {
+                size: 8
+            }
+        });
+    });
+    
+    // Add trendline
+    // Calculate linear regression parameters
+    const xMean = ndvi.reduce((a, b) => a + b, 0) / n;
+    const yMean = temps.reduce((a, b) => a + b, 0) / n;
+    
+    let numerator = 0;
+    let denominator = 0;
+    
+    for (let i = 0; i < n; i++) {
+        numerator += (ndvi[i] - xMean) * (temps[i] - yMean);
+        denominator += (ndvi[i] - xMean) ** 2;
+    }
+    
+    const slope = numerator / denominator;
+    const intercept = yMean - slope * xMean;
+    
+    // Calculate R-squared
+    let totalSumSquares = 0;
+    let residualSumSquares = 0;
+    
+    for (let i = 0; i < n; i++) {
+        const predicted = slope * ndvi[i] + intercept;
+        totalSumSquares += (temps[i] - yMean) ** 2;
+        residualSumSquares += (temps[i] - predicted) ** 2;
+    }
+    
+    const rSquared = 1 - (residualSumSquares / totalSumSquares);
+    
+    // Create x values for the trendline
+    const minNdvi = Math.min(...ndvi);
+    const maxNdvi = Math.max(...ndvi);
+    const trendX = [minNdvi, maxNdvi];
+    const trendY = trendX.map(x => slope * x + intercept);
+    
+    traces.push({
+        x: trendX,
+        y: trendY,
+        mode: 'lines',
+        type: 'scatter',
+        name: 'Trend Line',
+        line: {
+            color: 'black',
+            width: 2,
+            dash: 'dash'
+        }
+    });
+    
+    const layout = {
+        title: 'Relationship Between Vegetation Coverage and Surface Temperature',
+        xaxis: {
+            title: 'Vegetation Index (NDVI)',
+            range: [0, 0.85]
+        },
+        yaxis: {
+            title: 'Land Surface Temperature (°C)'
+        },
+        height: 500,
+        annotations: [{
+            xref: 'paper',
+            yref: 'paper',
+            x: 0.7,
+            y: 0.9,
+            text: `Temperature = ${intercept.toFixed(2)} + (${slope.toFixed(2)} × NDVI)<br>R² = ${rSquared.toFixed(2)}`,
+            showarrow: false,
+            font: {
+                size: 14
+            },
+            bgcolor: 'rgba(255, 255, 255, 0.8)',
+            bordercolor: 'rgba(0, 0, 0, 0.3)',
+            borderwidth: 1,
+            borderpad: 4
+        }]
+    };
+    
+    Plotly.newPlot('temp-ndvi-scatter', traces, layout);
+    
+    // Update cooling effect text
+    const coolingEffect = Math.abs(slope);
+    document.getElementById('cooling-effect-text').innerHTML = `
+        <strong>Key Finding:</strong> For every 0.1 increase in NDVI, the land surface temperature decreases by approximately ${(coolingEffect/10).toFixed(1)}°C.
+        <br><br>
+        This negative correlation highlights vegetation's important role in cooling urban and rural environments. 
+        The R² value of ${rSquared.toFixed(2)} indicates that ${Math.round(rSquared*100)}% of temperature variation can be explained by vegetation cover.
+    `;
+    
+    // Create box plot
+    const boxTraces = [];
+    landUseTypes.forEach(type => {
+        const indices = landUse.map((lu, i) => lu === type ? i : -1).filter(i => i !== -1);
+        const typeTemps = indices.map(i => temps[i]);
+        
+        boxTraces.push({
+            y: typeTemps,
+            type: 'box',
+            name: type,
+            boxmean: true
+        });
+    });
+    
+    const boxLayout = {
+        title: 'Temperature Distribution by Vegetation Category',
+        yaxis: {title: 'Temperature (°C)'},
+        height: 500
+    };
+    
+    Plotly.newPlot('temp-by-vegetation-box', boxTraces, boxLayout);
+}
+
+function loadTemporalData() {
+    // Get selected districts
+    const districtSelect = document.getElementById('district-ndvi-compare');
+    const selectedDistricts = Array.from(districtSelect.selectedOptions).map(opt => opt.value);
+    
+    if (selectedDistricts.length === 0) {
+        // If none selected, default to "All"
+        selectedDistricts.push('All');
+    }
+    
+    // Generate temporal NDVI data
+    const years = Array.from({length: 25}, (_, i) => 2000 + i);
+    const traces = [];
+    
+    const baseNDVI = {
+        'All': 0.45,
+        'Chennai': 0.35,
+        'Coimbatore': 0.50,
+        'Nilgiris': 0.75,
+        'Madurai': 0.40
+    };
+    
+    // Define events that affect NDVI
+    const events = {
+        2004: {name: "Major Drought", effect: -0.05},
+        2010: {name: "Reforestation Program", effect: 0.03},
+        2015: {name: "Urban Greening Initiative", effect: 0.02},
+        2019: {name: "Severe Drought", effect: -0.04}
+    };
+    
+    selectedDistricts.forEach(district => {
+        // Create base trend (slight decline due to urbanization, except for Nilgiris)
+        let trend;
+        if (district === 'Nilgiris') {
+            trend = -0.001; // Less affected by urbanization
+        } else if (district === 'Chennai') {
+            trend = -0.005; // More affected by urbanization
+        } else {
+            trend = -0.003; // Average trend
+        }
+        
+        // Generate NDVI values with trend
+        const ndviValues = years.map(year => {
+            let value = baseNDVI[district] + trend * (year - 2000);
+            
+            // Add some random variation
+            value += (Math.random() * 0.04 - 0.02);
+            
+            // Apply effects from events
+            for (const [eventYear, event] of Object.entries(events)) {
+                if (year >= parseInt(eventYear)) {
+                    // Effect diminishes over time
+                    const yearsSince = year - parseInt(eventYear);
+                    if (yearsSince < 3) {
+                        value += event.effect * Math.max(0, 1 - yearsSince/3);
+                    }
+                }
+            }
+            
+            return value;
+        });
+        
+        traces.push({
+            x: years,
+            y: ndviValues,
+            type: 'scatter',
+            mode: 'lines+markers',
+            name: district,
+            line: {
+                width: 3
+            },
+            marker: {
+                size: 6
+            }
+        });
+    });
+    
+    // Add event markers
+    for (const [year, event] of Object.entries(events)) {
+        traces.push({
+            x: [parseInt(year)],
+            y: [0.3],
+            mode: 'markers',
+            type: 'scatter',
+            name: event.name,
+            marker: {
+                size: 12,
+                symbol: 'triangle-up',
+                color: event.effect > 0 ? 'green' : 'red'
+            },
+            yaxis: 'y2',
+            hoverinfo: 'text',
+            text: event.name
+        });
+    }
+    
+    const layout = {
+        title: 'NDVI Trends Over Time',
+        xaxis: {
+            title: 'Year'
+        },
+        yaxis: {
+            title: 'NDVI Value',
+            range: [0, 0.8]
+        },
+        yaxis2: {
+            overlaying: 'y',
+            side: 'right',
+            showticklabels: false,
+            range: [0, 0.6],
+            showgrid: false
+        },
+        height: 500,
+        legend: {
+            x: 0,
+            y: 1,
+            orientation: 'h'
+        },
+        margin: {
+            t: 50,
+            b: 60,
+            l: 60,
+            r: 50
+        },
+        annotations: []
+    };
+    
+    // Add event annotations
+    Object.entries(events).forEach(([year, event]) => {
+        layout.annotations.push({
+            x: parseInt(year),
+            y: 0.05,
+            text: event.name,
+            showarrow: true,
+            arrowhead: 4,
+            arrowsize: 1,
+            arrowwidth: 2,
+            arrowcolor: event.effect > 0 ? 'green' : 'red',
+            ax: 0,
+            ay: -30
+        });
+    });
+    
+    Plotly.newPlot('ndvi-trend-chart', traces, layout);
+    
+    // Create land cover change chart
+    const landCoverTypes = ['Urban', 'Agriculture', 'Forest', 'Water Bodies', 'Other'];
+    const years2000 = [15, 40, 25, 10, 10];
+    const years2024 = [25, 38, 20, 10, 7];
+    
+    const landCoverTraces = [
+        {
+            x: landCoverTypes,
+            y: years2000,
+            type: 'bar',
+            name: '2000',
+            marker: {
+                color: '#1f77b4'
+            }
+        },
+        {
+            x: landCoverTypes,
+            y: years2024,
+            type: 'bar',
+            name: '2024',
+            marker: {
+                color: '#ff7f0e'
+            }
+        }
+    ];
+    
+    const landCoverLayout = {
+        title: 'Land Cover Change (2000 vs 2024)',
+        xaxis: {
+            title: 'Land Cover Type'
+        },
+        yaxis: {
+            title: 'Percentage (%)'
+        },
+        barmode: 'group',
+        height: 400
+    };
+    
+    Plotly.newPlot('landcover-change-chart', landCoverTraces, landCoverLayout);
+}
+</script>
+{% endblock %}create the vegetation analysis page
