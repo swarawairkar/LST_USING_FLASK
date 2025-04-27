@@ -1,0 +1,21 @@
+## Running the Application
+### Command Line
+1. Start the Flask application:
+```bash
+python app.py
+python run_flask_app.py
+```
+2. Open your web browser and navigate to:
+-0
++10
+```
+http://localhost:8000
+```
+### VS Code
+This project includes VS Code launch configuration:
+1. Open the project in VS Code
+2. Go to the Run and Debug view (Ctrl+Shift+D or Cmd+Shift+D)
+3. Select "Run Flask App" from the dropdown menu
+4. Click the play button or press F5
+5. The application will start and open in your default browser automatically
+## Application Structure
