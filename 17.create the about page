@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+
+{% block title %}About - Landsat Data Analysis Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h3>About This Dashboard</h3>
+            </div>
+            <div class="card-body">
+                <p>
+                    Welcome to the Landsat Data Analysis Dashboard. This platform provides comprehensive 
+                    visualization and analysis tools for examining land surface temperature patterns in 
+                    Tamil Nadu, India, using data derived from Landsat satellite imagery.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h4>Data Sources</h4>
+            </div>
+            <div class="card-body">
+                <h5>Satellite Data</h5>
+                <ul>
+                    <li><strong>Landsat 7:</strong> Satellite images from 2000-2013</li>
+                    <li><strong>Landsat 8:</strong> Satellite images from 2013-2021</li>
+                    <li><strong>Landsat 9:</strong> Satellite images from 2021-present</li>
+                </ul>
+                
+                <h5>Spatial Data</h5>
+                <ul>
+                    <li><strong>Administrative Boundaries:</strong> Survey of India, Tamil Nadu GIS Portal</li>
+                    <li><strong>Land Cover Data:</strong> National Remote Sensing Centre (NRSC)</li>
+                    <li><strong>Elevation Data:</strong> SRTM (Shuttle Radar Topography Mission)</li>
+                </ul>
+                
+                <h5>Temporal Resolution</h5>
+                <p>
+                    Landsat satellites provide images every 16 days. For this analysis, clear images 
+                    (cloud-free or with minimal cloud coverage) were selected for each month to 
+                    create monthly and annual composites.
+                </p>
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h4>Methodology</h4>
+            </div>
+            <div class="card-body">
+                <h5>Land Surface Temperature (LST) Calculation</h5>
+                <p>
+                    LST is derived from Landsat thermal infrared bands using the following process:
+                </p>
+                <ol>
+                    <li>Conversion of Digital Numbers (DN) to Top of Atmosphere (TOA) radiance</li>
+                    <li>Conversion of TOA radiance to brightness temperature</li>
+                    <li>Land Surface Emissivity (LSE) estimation using NDVI Thresholds Method</li>
+                    <li>Atmospheric correction using Split-Window Algorithm</li>
+                    <li>Final LST calculation in degrees Celsius</li>
+                </ol>
+                
+                <h5>NDVI Calculation</h5>
+                <p>
+                    Normalized Difference Vegetation Index (NDVI) is calculated using the near-infrared (NIR) 
+                    and red bands:
+                </p>
+                <div class="alert alert-light text-center">
+                    <strong>NDVI = (NIR - Red) / (NIR + Red)</strong>
+                </div>
+                
+                <h5>Urban Heat Island Analysis</h5>
+                <p>
+                    Urban Heat Island (UHI) intensity is calculated as the temperature difference between 
+                    urban cores and surrounding rural areas. Transect analysis and buffer zones are used 
+                    to quantify the UHI effect.
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h4>Features & Capabilities</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <h5>Spatial Analysis</h5>
+                                <ul>
+                                    <li>District-level temperature mapping</li>
+                                    <li>Urban-rural temperature gradients</li>
+                                    <li>Land cover impact assessment</li>
+                                    <li>Regional comparison tools</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <h5>Temporal Analysis</h5>
+                                <ul>
+                                    <li>Long-term temperature trends</li>
+                                    <li>Seasonal temperature patterns</li>
+                                    <li>Monthly variation visualization</li>
+                                    <li>Multi-year comparisons</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <h5>Vegetation Analysis</h5>
+                                <ul>
+                                    <li>NDVI distribution mapping</li>
+                                    <li>Vegetation cover change detection</li>
+                                    <li>Temperature-vegetation correlation</li>
+                                    <li>Land use impact analysis</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <h5>Urban Heat Analysis</h5>
+                                <ul>
+                                    <li>Urban heat island quantification</li>
+                                    <li>City-specific UHI profiles</li>
+                                    <li>Land cover influence assessment</li>
+                                    <li>Mitigation strategy evaluation</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h4>Application & Significance</h4>
+            </div>
+            <div class="card-body">
+                <p>
+                    This dashboard provides valuable information for a wide range of applications:
+                </p>
+                
+                <h5>Urban Planning & Development</h5>
+                <ul>
+                    <li>Identification of urban heat islands for targeted mitigation</li>
+                    <li>Assessment of heat-vulnerable areas for resilience planning</li>
+                    <li>Evaluation of green infrastructure impact</li>
+                </ul>
+                
+                <h5>Environmental Management</h5>
+                <ul>
+                    <li>Monitoring of vegetation health and changes</li>
+                    <li>Assessment of land use change impacts on local climate</li>
+                    <li>Identification of ecological stress zones</li>
+                </ul>
+                
+                <h5>Public Health</h5>
+                <ul>
+                    <li>Identification of heat-related health risk areas</li>
+                    <li>Planning for extreme heat events and emergencies</li>
+                    <li>Development of targeted cooling strategies</li>
+                </ul>
+                
+                <h5>Climate Change Research</h5>
+                <ul>
+                    <li>Long-term monitoring of temperature trends</li>
+                    <li>Assessment of local climate change impacts</li>
+                    <li>Evaluation of adaptation and mitigation measures</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4>Contact & Technical Support</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Project Development</h5>
+                        <p>
+                            This dashboard was developed to provide accessible, user-friendly tools for 
+                            analyzing Landsat-derived land surface temperature data for Tamil Nadu. It 
+                            aims to support evidence-based decision making for urban planning, environmental 
+                            management, and climate change adaptation.
+                        </p>
+                        <p>
+                            For questions, feedback, or collaboration opportunities, please contact:
+                        </p>
+                        <p>
+                            <strong>Email:</strong> contact@landsatdashboard.org<br>
+                            <strong>Phone:</strong> +91-123-456-7890
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>Technical Documentation</h5>
+                        <p>
+                            For technical details about data processing, algorithms, and methodologies, 
+                            please refer to our documentation:
+                        </p>
+                        <ul>
+                            <li><a href="#">Technical Documentation (PDF)</a></li>
+                            <li><a href="#">API Reference</a></li>
+                            <li><a href="#">Data Processing Workflow</a></li>
+                            <li><a href="#">Algorithm Descriptions</a></li>
+                        </ul>
+                        <p>
+                            The dashboard code is open-source and available on GitHub:
+                            <br>
+                            <a href="https://github.com/example/landsat-dashboard">GitHub Repository</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
