@@ -1,0 +1,72 @@
+// Main JavaScript for Landsat Data Analysis Dashboard
+
+// Function to show loading spinner
+function showLoading(containerId) {
+    const container = document.getElementById(containerId);
+    if (container) {
+        container.innerHTML = `
+            <div class="d-flex justify-content-center align-items-center" style="height: 300px;">
+                <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        `;
+    }
+}
+
+// Format temperature with unit
+function formatTemperature(temp) {
+    return `${temp.toFixed(1)}°C`;
+}
+
+// Format date for display
+function formatDate(year, month) {
+    const date = new Date(year, month - 1);
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+}
+
+// Format NDVI value
+function formatNDVI(ndvi) {
+    return ndvi.toFixed(2);
+}
+
+// Get NDVI color based on value
+function getNDVIColor(ndvi) {
+    if (ndvi < 0) return '#0000FF'; // Water (blue)
+    if (ndvi < 0.2) return '#FF0000'; // Very low vegetation (red)
+    if (ndvi < 0.4) return '#FFA500'; // Low vegetation (orange)
+    if (ndvi < 0.6) return '#FFFF00'; // Moderate vegetation (yellow)
+    if (ndvi < 0.8) return '#90EE90'; // High vegetation (light green)
+    return '#006400'; // Very high vegetation (dark green)
+}
+
+// Common error handler
+function handleFetchError(error, containerId) {
+    const container = document.getElementById(containerId);
+    if (container) {
+        container.innerHTML = `
+            <div class="alert alert-danger" role="alert">
+                <h4 class="alert-heading">Error Loading Data</h4>
+                <p>${error.message || 'An unexpected error occurred while fetching data.'}</p>
+                <hr>
+                <p class="mb-0">Please try again or contact support if the problem persists.</p>
+            </div>
+        `;
+    }
+    console.error('Error:', error);
+}
+
+// Document ready function
+document.addEventListener('DOMContentLoaded', function() {
+    // Enable tooltips everywhere
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    // Enable popovers
+    const popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+    popoverTriggerList.map(function (popoverTriggerEl) {
+        return new bootstrap.Popover(popoverTriggerEl);
+    });
+});
