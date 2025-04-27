@@ -1,0 +1,298 @@
+{% extends "base.html" %}
+
+{% block title %}Landsat Data Analysis Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4>Parameters</h4>
+            </div>
+            <div class="card-body">
+                <form id="parameters-form">
+                    <div class="mb-3">
+                        <label for="year" class="form-label">Year</label>
+                        <select class="form-select" id="year" name="year">
+                            <option value="2018">2018</option>
+                            <option value="2020">2020</option>
+                            <option value="2024" selected>2024</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="month" class="form-label">Month</label>
+                        <select class="form-select" id="month" name="month">
+                            <option value="1">January</option>
+                            <option value="2">February</option>
+                            <option value="3">March</option>
+                            <option value="4" selected>April</option>
+                            <option value="5">May</option>
+                            <option value="6">June</option>
+                            <option value="7">July</option>
+                            <option value="8">August</option>
+                            <option value="9">September</option>
+                            <option value="10">October</option>
+                            <option value="11">November</option>
+                            <option value="12">December</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="district" class="form-label">District</label>
+                        <select class="form-select" id="district" name="district">
+                            <option value="All" selected>All</option>
+                            <!-- Populated via JavaScript -->
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Time of Day</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="time_of_day" id="daytime" value="Daytime" checked>
+                            <label class="form-check-label" for="daytime">Daytime</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="time_of_day" id="nighttime" value="Nighttime">
+                            <label class="form-check-label" for="nighttime">Nighttime</label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Variable</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="variable" id="lst" value="LST" checked>
+                            <label class="form-check-label" for="lst">LST (Land Surface Temperature)</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="variable" id="ndvi" value="NDVI">
+                            <label class="form-check-label" for="ndvi">NDVI (Vegetation Index)</label>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Update</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-9">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h4>Spatial Data Visualization</h4>
+            </div>
+            <div class="card-body">
+                <div id="map-container" style="height: 400px;"></div>
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <h5>About the Location</h5>
+                        <p id="location-info">
+                            Tamil Nadu is a state in southern India. It's known for its 
+                            Tamil culture, Hindu temples, and diverse landscape.
+                            <br><br>
+                            Area: 130,058 km² | Population: ~72 million | Climate: Tropical
+                        </p>
+                        <h5>Temperature Context</h5>
+                        <p>
+                            Land Surface Temperature (LST) is the radiative skin temperature 
+                            of the ground. It differs from air temperature and is influenced 
+                            by albedo, vegetation cover, and soil moisture.
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>Data Insights</h5>
+                        <h6>Temperature Pattern Insights</h6>
+                        <ul>
+                            <li>Urban areas typically show higher temperatures than surrounding 
+                            rural areas due to the urban heat island effect.</li>
+                            <li>Water bodies appear as cooler regions in the temperature map.</li>
+                            <li>Areas with dense vegetation often have lower surface temperatures 
+                            due to evapotranspiration.</li>
+                            <li>The temperature pattern shows typical seasonal characteristics for this region.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4>Temporal Trend Analysis</h4>
+            </div>
+            <div class="card-body">
+                <div id="trend-chart" style="height: 400px;"></div>
+                <div class="text-center mt-3">
+                    <a href="/temporal-analysis" class="btn btn-outline-primary">View detailed temporal analysis →</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4>Quick Access</h4>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-4">
+                        <a href="/spatial-analysis" class="btn btn-outline-primary btn-lg w-100 mb-3">
+                            <i class="bi bi-map"></i> Spatial Analysis
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        <a href="/temporal-analysis" class="btn btn-outline-primary btn-lg w-100 mb-3">
+                            <i class="bi bi-graph-up"></i> Temporal Analysis
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        <a href="/vegetation-analysis" class="btn btn-outline-primary btn-lg w-100 mb-3">
+                            <i class="bi bi-tree"></i> Vegetation Analysis
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Fetch districts
+    fetch('/api/districts')
+        .then(response => response.json())
+        .then(districts => {
+            const districtSelect = document.getElementById('district');
+            districts.forEach(district => {
+                if (district !== 'All') { // 'All' is already in the HTML
+                    const option = document.createElement('option');
+                    option.value = district;
+                    option.textContent = district;
+                    districtSelect.appendChild(option);
+                }
+            });
+        });
+    
+    // Load initial map
+    loadMap();
+    
+    // Load initial trend chart
+    loadTrendChart();
+    
+    // Set up form submission
+    document.getElementById('parameters-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        loadMap();
+        loadTrendChart();
+        updateLocationInfo();
+    });
+});
+
+function loadMap() {
+    const params = new URLSearchParams();
+    params.append('year', document.getElementById('year').value);
+    params.append('month', document.getElementById('month').value);
+    params.append('district', document.getElementById('district').value);
+    params.append('time_of_day', document.querySelector('input[name="time_of_day"]:checked').value);
+    
+    fetch(`/api/temperature_map?${params.toString()}`)
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('map-container').innerHTML = html;
+        });
+}
+
+function loadTrendChart() {
+    const district = document.getElementById('district').value;
+    
+    fetch(`/api/annual_trend?district=${district}`)
+        .then(response => response.json())
+        .then(data => {
+            const years = data.map(d => d.Year);
+            const temps = data.map(d => d.Temperature);
+            
+            // Calculate trend line
+            const n = years.length;
+            const xMean = years.reduce((a, b) => a + b, 0) / n;
+            const yMean = temps.reduce((a, b) => a + b, 0) / n;
+            
+            let slope = 0;
+            let numerator = 0;
+            let denominator = 0;
+            
+            for (let i = 0; i < n; i++) {
+                numerator += (years[i] - xMean) * (temps[i] - yMean);
+                denominator += (years[i] - xMean) ** 2;
+            }
+            
+            slope = numerator / denominator;
+            const intercept = yMean - slope * xMean;
+            
+            const trendY = years.map(x => slope * x + intercept);
+            
+            const layout = {
+                title: 'Temperature Trend Analysis for Tamil Nadu',
+                xaxis: {title: 'Year'},
+                yaxis: {title: 'Average Temperature (°C)'},
+                showlegend: true,
+                height: 400,
+                margin: {l: 50, r: 30, t: 50, b: 50}
+            };
+            
+            const plotData = [
+                {
+                    x: years,
+                    y: temps,
+                    mode: 'markers',
+                    type: 'scatter',
+                    name: 'Observed Values',
+                    marker: {color: '#1E88E5'}
+                },
+                {
+                    x: years,
+                    y: trendY,
+                    mode: 'lines',
+                    type: 'scatter',
+                    name: 'Trend Line',
+                    line: {color: '#FF5722'}
+                }
+            ];
+            
+            Plotly.newPlot('trend-chart', plotData, layout);
+            
+            // Add trendline equation annotation
+            const trendEq = `Trend: ${slope.toFixed(3)}°C/year`;
+            Plotly.relayout('trend-chart', {
+                annotations: [{
+                    x: 2015,
+                    y: Math.max(...temps) - 1,
+                    text: trendEq,
+                    showarrow: false,
+                    font: {size: 14}
+                }]
+            });
+        });
+}
+
+function updateLocationInfo() {
+    const district = document.getElementById('district').value;
+    let info = '';
+    
+    if (district === 'All') {
+        info = `Tamil Nadu is a state in southern India. It's known for its 
+                Tamil culture, Hindu temples, and diverse landscape.
+                <br><br>
+                Area: 130,058 km² | Population: ~72 million | Climate: Tropical`;
+    } else if (district === 'Chennai') {
+        info = `Chennai is the capital of Tamil Nadu state in southern India. 
+                It's a major commercial, cultural, and educational center of South India.
+                <br><br>
+                Area: 426 km² | Population: ~7 million | Climate: Tropical wet and dry`;
+    } else {
+        info = `${district} is a district in Tamil Nadu state, southern India.
+                <br><br>
+                Climate: Predominantly tropical`;
+    }
+    
+    document.getElementById('location-info').innerHTML = info;
+}
+</script>
+{% endblock %}
