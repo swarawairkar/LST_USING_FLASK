@@ -1,0 +1,6 @@
+lask==3.1.0
+folium==0.15.1
+numpy==1.26.4
+pandas==2.1.4
+plotly==5.18.0
+statsmodels==0.14.1
