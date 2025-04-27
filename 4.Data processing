@@ -1,0 +1,357 @@
+import numpy as np
+import pandas as pd
+import folium
+from folium.plugins import HeatMap
+import random
+from datetime import datetime
+
+# Tamil Nadu district names (sample list)
+DISTRICT_NAMES = [
+    "Chennai", "Coimbatore", "Cuddalore", "Dharmapuri", "Dindigul", 
+    "Erode", "Kanchipuram", "Kanniyakumari", "Karur", "Krishnagiri", 
+    "Madurai", "Nagapattinam", "Namakkal", "Nilgiris", "Perambalur", 
+    "Pudukkottai", "Ramanathapuram", "Salem", "Sivaganga", 
+    "Thanjavur", "Theni", "Thoothukudi", "Tiruchirappalli", 
+    "Tirunelveli", "Tiruppur", "Tiruvallur", "Tiruvannamalai", 
+    "Tiruvarur", "Vellore", "Viluppuram", "Virudhunagar"
+]
+
+def get_district_list():
+    """Return list of districts with 'All' as the first option"""
+    return ["All"] + DISTRICT_NAMES
+
+def generate_temperature_map_html(year=2024, month=4, district="All", time_of_day="Daytime"):
+    """
+    Generate temperature map HTML for Tamil Nadu.
+    
+    Args:
+        year (int): The year
+        month (int): The month
+        district (str): The district to focus on, or "All" for the entire state
+        time_of_day (str): "Daytime" or "Nighttime"
+        
+    Returns:
+        str: HTML content of the map
+    """
+    # Center coordinates for Tamil Nadu
+    center_lat, center_lon = 10.9094, 78.3665
+    
+    # Create map centered on Tamil Nadu
+    m = folium.Map(location=[center_lat, center_lon], zoom_start=7, tiles="CartoDB positron")
+    
+    # Urban centers (major cities)
+    urban_centers = {
+        "Chennai": [13.0827, 80.2707],
+        "Coimbatore": [11.0168, 76.9558],
+        "Madurai": [9.9252, 78.1198],
+        "Tiruchirappalli": [10.7905, 78.7047],
+        "Salem": [11.6643, 78.1460],
+        "Tirunelveli": [8.7139, 77.7567]
+    }
+    
+    # Random data generation for heat map
+    np.random.seed(42)  # For reproducibility
+    
+    # Base temperature adjustments based on inputs
+    base_temp_adjustment = 0
+    if time_of_day == "Nighttime":
+        base_temp_adjustment -= 8  # Cooler at night
+    
+    # Month adjustment (hotter in summer months)
+    month_factor = {
+        1: -4, 2: -3, 3: -1, 4: 0, 5: 1, 6: 2, 
+        7: 1, 8: 0, 9: -1, 10: -2, 11: -3, 12: -4
+    }
+    base_temp_adjustment += month_factor[month]
+    
+    # Year trend (warming over time)
+    year_trend = (year - 2010) * 0.02
+    base_temp_adjustment += year_trend
+    
+    # Generate points across Tamil Nadu
+    num_points = 500
+    
+    # Define boundaries for Tamil Nadu (approximate)
+    min_lat, max_lat = 8.5, 13.5
+    min_lon, max_lon = 76.5, 80.5
+    
+    # Generate random points within the boundaries
+    lat = np.random.uniform(min_lat, max_lat, num_points)
+    lon = np.random.uniform(min_lon, max_lon, num_points)
+    
+    # Base temperature is higher in cities, lower in hills, moderate in coastal areas
+    def calc_temp(lat, lon):
+        base_temp = 32 + base_temp_adjustment
+        
+        # Urban heat effect (higher temps near cities)
+        for city, coords in urban_centers.items():
+            city_lat, city_lon = coords
+            dist = np.sqrt((lat - city_lat)**2 + (lon - city_lon)**2)
+            if dist < 0.3:  # Within ~30km
+                urban_factor = max(0, 3 * (1 - dist/0.3))
+                base_temp += urban_factor
+        
+        # Coastal effect (cooler near the coast, eastern side of TN)
+        coastal_effect = 0
+        if lon > 79.5:  # East coast approximate longitude
+            dist_from_coast = lon - 79.5
+            if dist_from_coast < 0.5:  # Within ~50km from coast
+                coastal_effect = -1.5 * (1 - dist_from_coast/0.5)
+        
+        # Southern coastal effect
+        if lat < 9.0:  # Southern coast approximate latitude
+            dist_from_south = 9.0 - lat
+            if dist_from_south < 0.3:  # Within ~30km from south coast
+                coastal_effect = max(coastal_effect, -1.0 * (1 - dist_from_south/0.3))
+        
+        # Hill effect (Western Ghats and Nilgiris - cooler)
+        hill_effect = 0
+        if lon < 77.5 and lat > 10.0 and lat < 12.0:  # Western Ghats approximate
+            hill_effect = -3.0
+        elif lon < 77.0 and lat > 11.0 and lat < 11.6:  # Nilgiris approximate
+            hill_effect = -5.0
+        
+        # Add random variation
+        random_effect = np.random.normal(0, 0.8)
+        
+        # Combine all effects
+        base_temp += coastal_effect + hill_effect + random_effect
+        
+        return base_temp
+    
+    # Calculate temperatures
+    temps = [calc_temp(lat[i], lon[i]) for i in range(num_points)]
+    
+    # Create data for heatmap
+    heat_data = [[lat[i], lon[i], temps[i]] for i in range(num_points)]
+    
+    # Add heatmap layer
+    HeatMap(
+        heat_data,
+        radius=15,
+        gradient={
+            '0.2': 'blue',
+            '0.4': 'lime',
+            '0.6': 'yellow',
+            '0.8': 'orange',
+            '1.0': 'red'
+        },
+        min_opacity=0.5,
+        blur=10
+    ).add_to(m)
+    
+    # Add color scale legend
+    colorscale = folium.LinearColormap(
+        ['blue', 'lime', 'yellow', 'orange', 'red'],
+        vmin=25, vmax=40,
+        caption='Temperature (°C)'
+    )
+    colorscale.add_to(m)
+    
+    # Add urban centers as markers
+    for city, coords in urban_centers.items():
+        folium.CircleMarker(
+            location=coords,
+            radius=5,
+            color='black',
+            fill=True,
+            fill_color='black',
+            fill_opacity=0.7,
+            popup=city
+        ).add_to(m)
+    
+    # Return the HTML representation of the map
+    return m._repr_html_()
+
+def get_temperature_data(year=2024, month=4, time_of_day="Daytime"):
+    """
+    Get temperature data for all districts.
+    
+    Args:
+        year (int): The year
+        month (int): The month
+        time_of_day (str): "Daytime" or "Nighttime"
+        
+    Returns:
+        pd.DataFrame: DataFrame with district temperature data
+    """
+    # Base temperature parameters
+    base_temp = 32 if time_of_day == "Daytime" else 24
+    
+    # Adjust for month (hotter in summer months)
+    month_factor = {
+        1: -4, 2: -3, 3: -1, 4: 0,
+        5: 1, 6: 2, 7: 1, 8: 0,
+        9: -1, 10: -2, 11: -3, 12: -4
+    }
+    base_temp += month_factor[month]
+    
+    # Generate district data
+    data = []
+    for district in DISTRICT_NAMES:
+        # Urban districts are warmer
+        urban_factor = 2 if district in ["Chennai", "Coimbatore", "Madurai", "Tiruchirappalli"] else 0
+        
+        # Coastal districts have more moderate temperatures
+        coastal_factor = -1 if district in ["Chennai", "Cuddalore", "Nagapattinam", "Kanniyakumari", "Ramanathapuram", "Thoothukudi", "Tirunelveli"] else 0
+        
+        # Hill stations are cooler
+        hill_factor = -3 if district in ["Nilgiris"] else 0
+        
+        # Random variation
+        variation = np.random.uniform(-1, 1)
+        
+        # Calculate temperature
+        temp = base_temp + urban_factor + coastal_factor + hill_factor + variation
+        
+        # Year trend (warming over time)
+        year_trend = (year - 2010) * 0.02
+        temp += year_trend
+        
+        data.append({
+            "District": district,
+            "Temperature": temp,
+            "Urban": "Yes" if urban_factor > 0 else "No",
+            "Coastal": "Yes" if coastal_factor < 0 else "No",
+            "Hill": "Yes" if hill_factor < 0 else "No"
+        })
+    
+    return pd.DataFrame(data)
+
+def get_monthly_temperature_data(year=2024, district="All"):
+    """
+    Get monthly temperature data for a specific year and district.
+    
+    Args:
+        year (int): The year to analyze
+        district (str): The district to analyze, or "All" for the entire state
+        
+    Returns:
+        pd.DataFrame: Monthly temperature data
+    """
+    # Sample monthly temperatures (daytime)
+    monthly_temps = {
+        "All": [27, 28, 29, 32, 34, 34, 33, 31, 30, 29, 28, 27],
+        "Chennai": [28, 29, 30, 33, 36, 37, 35, 33, 32, 31, 29, 28],
+        "Coimbatore": [26, 27, 29, 31, 32, 32, 30, 29, 28, 27, 26, 25],
+        "Madurai": [29, 30, 32, 34, 35, 35, 34, 32, 31, 30, 29, 28],
+        "Nilgiris": [20, 21, 22, 24, 25, 24, 23, 22, 21, 20, 19, 19]
+    }
+    
+    # Use random values for districts not specifically listed
+    if district not in monthly_temps:
+        base = monthly_temps["All"]
+        variation = np.random.uniform(-1, 1, 12)
+        temps = [base[i] + variation[i] for i in range(12)]
+    else:
+        temps = monthly_temps[district]
+    
+    # Add year trend (warming over time)
+    year_trend = (year - 2010) * 0.02
+    temps = [t + year_trend for t in temps]
+    
+    # Add random variation
+    temps = [t + np.random.uniform(-0.5, 0.5) for t in temps]
+    
+    # Create DataFrame
+    months = list(range(1, 13))
+    month_names = [datetime(2024, m, 1).strftime('%b') for m in months]
+    
+    data = pd.DataFrame({
+        'Month': month_names,
+        'Month_Num': months,
+        'Temperature': temps
+    })
+    
+    return data
+
+def get_annual_trend_data(start_year=2000, end_year=2024, district="All"):
+    """
+    Get annual temperature trend data.
+    
+    Args:
+        start_year (int): Start year for analysis
+        end_year (int): End year for analysis
+        district (str): The district to analyze
+        
+    Returns:
+        pd.DataFrame: Annual temperature data
+    """
+    years = list(range(start_year, end_year + 1))
+    
+    # Base temperature for the district
+    if district == "Chennai":
+        base_temp = 29.5
+    elif district == "Nilgiris":
+        base_temp = 20.5
+    elif district == "Coimbatore":
+        base_temp = 27.5
+    else:
+        base_temp = 28.5
+    
+    # Add warming trend (0.164°C per year)
+    temps = [base_temp + 0.164 * (year - 2000) + np.random.normal(0, 0.5) for year in years]
+    
+    # Create DataFrame
+    data = pd.DataFrame({
+        'Year': years,
+        'Temperature': temps
+    })
+    
+    return data
+
+def get_ndvi_data(year=2024, month=4, district="All"):
+    """
+    Get NDVI (vegetation index) data.
+    
+    Args:
+        year (int): The year
+        month (int): The month
+        district (str): The district to analyze
+        
+    Returns:
+        dict: Dictionary with NDVI statistics
+    """
+    # Default NDVI values (range from -1 to 1, but typically 0 to 0.8 for vegetation)
+    district_ndvi = {
+        "All": 0.45,
+        "Chennai": 0.25,  # Urban, less vegetation
+        "Coimbatore": 0.50,
+        "Nilgiris": 0.70,  # Heavily forested
+        "Madurai": 0.40,
+        "Thanjavur": 0.60  # Agricultural area
+    }
+    
+    # Use default value for districts not specifically listed
+    if district not in district_ndvi:
+        base_ndvi = 0.45
+    else:
+        base_ndvi = district_ndvi[district]
+    
+    # Adjust for month (higher in monsoon/growing season)
+    month_factor = {
+        1: -0.05, 2: -0.08, 3: -0.10, 4: -0.05,
+        5: 0, 6: 0.05, 7: 0.10, 8: 0.15,
+        9: 0.10, 10: 0.05, 11: 0, 12: -0.05
+    }
+    
+    ndvi = base_ndvi + month_factor[month]
+    
+    # Ensure NDVI is in valid range
+    ndvi = max(0, min(0.8, ndvi))
+    
+    # Calculate statistics
+    ndvi_stats = {
+        "mean": ndvi,
+        "min": max(0, ndvi - 0.2 - random.uniform(0, 0.1)),
+        "max": min(0.8, ndvi + 0.2 + random.uniform(0, 0.1)),
+        "std": random.uniform(0.05, 0.15)
+    }
+    
+    # Year trend (slight decrease over time due to urbanization)
+    year_factor = -0.005 * (year - 2010)
+    ndvi_stats["mean"] += year_factor
+    ndvi_stats["min"] += year_factor
+    ndvi_stats["max"] += year_factor
+    
+    return ndvi_stats
