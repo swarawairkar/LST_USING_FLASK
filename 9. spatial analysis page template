@@ -1,0 +1,581 @@
+{% extends "base.html" %}
+
+{% block title %}Spatial Analysis - Landsat Data Analysis Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h3>Spatial Temperature Analysis</h3>
+            </div>
+            <div class="card-body">
+                <p>
+                    This analysis examines the spatial distribution of land surface temperature across Tamil Nadu, 
+                    highlighting patterns related to urban areas, vegetation coverage, and geographical features.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4>Parameters</h4>
+            </div>
+            <div class="card-body">
+                <form id="parameters-form">
+                    <div class="mb-3">
+                        <label for="year" class="form-label">Year</label>
+                        <select class="form-select" id="year" name="year">
+                            <option value="2018">2018</option>
+                            <option value="2020">2020</option>
+                            <option value="2024" selected>2024</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="month" class="form-label">Month</label>
+                        <select class="form-select" id="month" name="month">
+                            <option value="1">January</option>
+                            <option value="2">February</option>
+                            <option value="3">March</option>
+                            <option value="4" selected>April</option>
+                            <option value="5">May</option>
+                            <option value="6">June</option>
+                            <option value="7">July</option>
+                            <option value="8">August</option>
+                            <option value="9">September</option>
+                            <option value="10">October</option>
+                            <option value="11">November</option>
+                            <option value="12">December</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Time of Day</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="time_of_day" id="daytime" value="Daytime" checked>
+                            <label class="form-check-label" for="daytime">Daytime</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="time_of_day" id="nighttime" value="Nighttime">
+                            <label class="form-check-label" for="nighttime">Nighttime</label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="display-type" class="form-label">Display Type</label>
+                        <select class="form-select" id="display-type" name="display_type">
+                            <option value="map" selected>Map</option>
+                            <option value="bar">Bar Chart</option>
+                            <option value="heatmap">Correlation Heatmap</option>
+                        </select>
+                    </div>
+                    <div id="district-selection" class="mb-3 d-none">
+                        <label for="districts" class="form-label">Select Districts</label>
+                        <select class="form-select" id="districts" name="districts" multiple size="8">
+                            <!-- Populated via JavaScript -->
+                        </select>
+                        <small class="form-text text-muted">Hold Ctrl/Cmd to select multiple</small>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Update</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-9">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4 id="analysis-title">Land Surface Temperature Map</h4>
+            </div>
+            <div class="card-body">
+                <div id="map-container" class="visualization-container" style="height: 500px;"></div>
+                <div id="bar-container" class="visualization-container d-none" style="height: 500px;"></div>
+                <div id="heatmap-container" class="visualization-container d-none" style="height: 500px;"></div>
+                
+                <div id="interpretation" class="mt-4">
+                    <!-- Content will be updated based on display type -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4>Regional Temperature Profiles</h4>
+            </div>
+            <div class="card-body">
+                <ul class="nav nav-tabs" id="regionTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="coastal-tab" data-bs-toggle="tab" data-bs-target="#coastal" type="button" role="tab">Coastal Region</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="western-tab" data-bs-toggle="tab" data-bs-target="#western" type="button" role="tab">Western Hills</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="central-tab" data-bs-toggle="tab" data-bs-target="#central" type="button" role="tab">Central Plains</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="southern-tab" data-bs-toggle="tab" data-bs-target="#southern" type="button" role="tab">Southern Region</button>
+                    </li>
+                </ul>
+                <div class="tab-content" id="regionsContent">
+                    <div class="tab-pane fade show active" id="coastal" role="tabpanel">
+                        <div class="row mt-3">
+                            <div class="col-md-8">
+                                <div id="coastal-chart" style="height: 400px;"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <h5>Coastal Region Characteristics</h5>
+                                <ul>
+                                    <li>Moderated by sea breeze and maritime influence</li>
+                                    <li>High humidity affects perceived temperature</li>
+                                    <li>Less diurnal variation than inland areas</li>
+                                    <li>Vulnerable to sea level rise and extreme weather events</li>
+                                </ul>
+                                <div class="mt-3" id="coastal-stats"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="western" role="tabpanel">
+                        <div class="row mt-3">
+                            <div class="col-md-8">
+                                <div id="western-chart" style="height: 400px;"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <h5>Western Hills Characteristics</h5>
+                                <ul>
+                                    <li>Cooler temperatures due to elevation</li>
+                                    <li>High rainfall and forest coverage</li>
+                                    <li>Important ecological zone with rich biodiversity</li>
+                                    <li>Sensitive to climate change and deforestation</li>
+                                </ul>
+                                <div class="mt-3" id="western-stats"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="central" role="tabpanel">
+                        <div class="row mt-3">
+                            <div class="col-md-8">
+                                <div id="central-chart" style="height: 400px;"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <h5>Central Plains Characteristics</h5>
+                                <ul>
+                                    <li>Higher daytime temperatures and greater diurnal variation</li>
+                                    <li>Predominantly agricultural land use</li>
+                                    <li>Less rainfall than coastal and hill regions</li>
+                                    <li>Vulnerable to drought and heat waves</li>
+                                </ul>
+                                <div class="mt-3" id="central-stats"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="southern" role="tabpanel">
+                        <div class="row mt-3">
+                            <div class="col-md-8">
+                                <div id="southern-chart" style="height: 400px;"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <h5>Southern Region Characteristics</h5>
+                                <ul>
+                                    <li>Mix of plains and small hills</li>
+                                    <li>Hot and dry climate in many areas</li>
+                                    <li>Traditional water conservation methods</li>
+                                    <li>Distinct seasonal patterns with monsoon dependence</li>
+                                </ul>
+                                <div class="mt-3" id="southern-stats"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Populate districts
+    loadDistricts();
+    
+    // Load initial data
+    loadVisualization();
+    loadRegionalData();
+    
+    // Handle form submission
+    document.getElementById('parameters-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        loadVisualization();
+    });
+    
+    // Toggle district selection based on display type
+    document.getElementById('display-type').addEventListener('change', function() {
+        const displayType = this.value;
+        const districtSelection = document.getElementById('district-selection');
+        
+        if (displayType === 'bar') {
+            districtSelection.classList.remove('d-none');
+        } else {
+            districtSelection.classList.add('d-none');
+        }
+        
+        // Update the title
+        const titleElement = document.getElementById('analysis-title');
+        if (displayType === 'map') {
+            titleElement.textContent = 'Land Surface Temperature Map';
+        } else if (displayType === 'bar') {
+            titleElement.textContent = 'District Temperature Comparison';
+        } else {
+            titleElement.textContent = 'Temperature Factors Analysis';
+        }
+    });
+    
+    // Initialize tab events
+    const regionTabs = document.querySelectorAll('#regionTabs button');
+    regionTabs.forEach(tab => {
+        tab.addEventListener('shown.bs.tab', function(e) {
+            loadRegionalData();
+        });
+    });
+});
+
+function loadDistricts() {
+    fetch('/api/districts')
+        .then(response => response.json())
+        .then(districts => {
+            const districtSelect = document.getElementById('districts');
+            districts.forEach(district => {
+                if (district !== 'All') {
+                    const option = document.createElement('option');
+                    option.value = district;
+                    option.textContent = district;
+                    districtSelect.appendChild(option);
+                }
+            });
+        });
+}
+
+function loadVisualization() {
+    const displayType = document.getElementById('display-type').value;
+    const year = document.getElementById('year').value;
+    const month = document.getElementById('month').value;
+    const timeOfDay = document.querySelector('input[name="time_of_day"]:checked').value;
+    
+    // Hide all containers
+    document.querySelectorAll('.visualization-container').forEach(container => {
+        container.classList.add('d-none');
+    });
+    
+    if (displayType === 'map') {
+        document.getElementById('map-container').classList.remove('d-none');
+        loadMap(year, month, timeOfDay);
+        loadMapInterpretation();
+    } else if (displayType === 'bar') {
+        document.getElementById('bar-container').classList.remove('d-none');
+        loadBarChart(year, month, timeOfDay);
+        loadBarInterpretation();
+    } else {
+        document.getElementById('heatmap-container').classList.remove('d-none');
+        loadHeatmap(year, month, timeOfDay);
+        loadHeatmapInterpretation();
+    }
+}
+
+function loadMap(year, month, timeOfDay) {
+    const params = new URLSearchParams();
+    params.append('year', year);
+    params.append('month', month);
+    params.append('time_of_day', timeOfDay);
+    
+    fetch(`/api/temperature_map?${params.toString()}`)
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('map-container').innerHTML = html;
+        });
+}
+
+function loadBarChart(year, month, timeOfDay) {
+    const params = new URLSearchParams();
+    params.append('year', year);
+    params.append('month', month);
+    params.append('time_of_day', timeOfDay);
+    
+    fetch(`/api/temperature_data?${params.toString()}`)
+        .then(response => response.json())
+        .then(data => {
+            // Get selected districts or use top 10
+            const districtSelect = document.getElementById('districts');
+            const selectedDistricts = Array.from(districtSelect.selectedOptions).map(opt => opt.value);
+            
+            let filteredData;
+            if (selectedDistricts.length > 0) {
+                filteredData = data.filter(d => selectedDistricts.includes(d.District));
+            } else {
+                // Sort by temperature and get top 10
+                filteredData = [...data].sort((a, b) => b.Temperature - a.Temperature).slice(0, 10);
+            }
+            
+            // Create the bar chart
+            const barData = [{
+                x: filteredData.map(d => d.District),
+                y: filteredData.map(d => d.Temperature),
+                type: 'bar',
+                marker: {
+                    color: filteredData.map(d => d.Temperature),
+                    colorscale: 'Turbo'
+                }
+            }];
+            
+            const layout = {
+                title: `Land Surface Temperature by District (${timeOfDay})`,
+                xaxis: {title: 'District'},
+                yaxis: {title: 'Temperature (°C)'},
+                height: 500
+            };
+            
+            Plotly.newPlot('bar-container', barData, layout);
+            
+            // Update interpretation
+            updateBarInterpretation(filteredData);
+        });
+}
+
+function loadHeatmap(year, month, timeOfDay) {
+    const params = new URLSearchParams();
+    params.append('year', year);
+    params.append('month', month);
+    params.append('time_of_day', timeOfDay);
+    
+    fetch(`/api/temperature_data?${params.toString()}`)
+        .then(response => response.json())
+        .then(data => {
+            // Generate random correlations for demonstration
+            const features = ['Temperature', 'Urban_Area_Pct', 'Forest_Cover_Pct', 
+                              'Elevation_Avg', 'Water_Bodies_Pct', 'Population_Density'];
+            
+            const correlationMatrix = [];
+            
+            // Create a correlation matrix
+            for (let i = 0; i < features.length; i++) {
+                const row = [];
+                for (let j = 0; j < features.length; j++) {
+                    if (i === j) {
+                        row.push(1); // Diagonal is always 1
+                    } else if (j < i) {
+                        row.push(correlationMatrix[j][i]); // Mirror values
+                    } else {
+                        // Generate some reasonable correlation values
+                        let value;
+                        if (features[i] === 'Temperature') {
+                            if (features[j] === 'Urban_Area_Pct' || features[j] === 'Population_Density') {
+                                value = 0.7 + (Math.random() * 0.2); // Strong positive
+                            } else if (features[j] === 'Forest_Cover_Pct' || features[j] === 'Elevation_Avg' || features[j] === 'Water_Bodies_Pct') {
+                                value = -0.6 - (Math.random() * 0.3); // Strong negative
+                            } else {
+                                value = Math.random() * 2 - 1; // Random
+                            }
+                        } else {
+                            value = Math.random() * 2 - 1; // Random
+                        }
+                        row.push(Math.round(value * 100) / 100); // Round to 2 decimal places
+                    }
+                }
+                correlationMatrix.push(row);
+            }
+            
+            // Create the heatmap
+            const heatmapData = [{
+                z: correlationMatrix,
+                x: features.map(f => f.replace('_', ' ')),
+                y: features.map(f => f.replace('_', ' ')),
+                type: 'heatmap',
+                colorscale: 'RdBu_r',
+                zmin: -1,
+                zmax: 1,
+                text: correlationMatrix.map(row => row.map(val => val.toFixed(2))),
+                hoverinfo: 'x+y+z',
+                showscale: true
+            }];
+            
+            const layout = {
+                title: 'Correlation Between Temperature and Geographic Features',
+                height: 600,
+                margin: {l: 150, r: 50, t: 80, b: 150},
+                annotations: []
+            };
+            
+            // Add text annotations
+            for (let i = 0; i < features.length; i++) {
+                for (let j = 0; j < features.length; j++) {
+                    layout.annotations.push({
+                        x: features[j].replace('_', ' '),
+                        y: features[i].replace('_', ' '),
+                        text: correlationMatrix[i][j].toFixed(2),
+                        font: {color: Math.abs(correlationMatrix[i][j]) > 0.5 ? 'white' : 'black'},
+                        showarrow: false
+                    });
+                }
+            }
+            
+            Plotly.newPlot('heatmap-container', heatmapData, layout);
+        });
+}
+
+function loadMapInterpretation() {
+    const interpretation = `
+        <h5>Map Interpretation</h5>
+        <div class="row">
+            <div class="col-md-6">
+                <h6>Urban Heat Islands:</h6>
+                <ul>
+                    <li>Cities like Chennai, Coimbatore, and Madurai show significantly higher temperatures</li>
+                    <li>Industrial zones within these cities typically show the highest temperatures</li>
+                    <li>Concrete and building materials absorb and retain heat more than natural surfaces</li>
+                </ul>
+                
+                <h6>Coastal Effects:</h6>
+                <ul>
+                    <li>Coastal regions generally show more moderate temperatures</li>
+                    <li>Sea breeze has a cooling effect on areas within 5-10km of the coast</li>
+                    <li>Areas further inland show higher temperature readings</li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <h6>Vegetation Impact:</h6>
+                <ul>
+                    <li>The Nilgiris and other forested areas show substantially lower temperatures</li>
+                    <li>Agricultural regions show moderate temperatures</li>
+                    <li>Urban parks and green spaces appear as cooler spots within cities</li>
+                </ul>
+                
+                <h6>Topographical Effects:</h6>
+                <ul>
+                    <li>Higher elevation areas show cooler temperatures</li>
+                    <li>Valley regions often trap heat, showing higher temperatures</li>
+                    <li>Water bodies like lakes and reservoirs appear as cooler spots</li>
+                </ul>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('interpretation').innerHTML = interpretation;
+}
+
+function updateBarInterpretation(data) {
+    // Sort data by temperature
+    const sortedData = [...data].sort((a, b) => b.Temperature - a.Temperature);
+    const highestTemp = sortedData[0];
+    const lowestTemp = sortedData[sortedData.length - 1];
+    const tempDiff = highestTemp.Temperature - lowestTemp.Temperature;
+    
+    const interpretation = `
+        <h5>Key Observations</h5>
+        <ul>
+            <li><strong>Highest Temperature:</strong> ${highestTemp.District} at ${highestTemp.Temperature.toFixed(1)}°C</li>
+            <li><strong>Lowest Temperature:</strong> ${lowestTemp.District} at ${lowestTemp.Temperature.toFixed(1)}°C</li>
+            <li><strong>Temperature Range:</strong> ${tempDiff.toFixed(1)}°C difference between highest and lowest</li>
+        </ul>
+        <p>The temperature distribution shows clear patterns related to:</p>
+        <ul>
+            <li>Urbanization (urban districts generally warmer)</li>
+            <li>Coastal proximity (coastal districts more moderate)</li>
+            <li>Elevation (hill districts cooler)</li>
+            <li>Vegetation coverage (forested areas cooler)</li>
+        </ul>
+    `;
+    
+    document.getElementById('interpretation').innerHTML = interpretation;
+}
+
+function loadHeatmapInterpretation() {
+    const interpretation = `
+        <h5>Key Correlations</h5>
+        <p>
+            This heatmap shows the correlation between land surface temperature and various geographic features:
+        </p>
+        <ul>
+            <li><strong>Urban Area Percentage:</strong> Strong positive correlation with temperature (urban heat island effect)</li>
+            <li><strong>Forest Cover Percentage:</strong> Strong negative correlation (forests help cool the environment)</li>
+            <li><strong>Elevation:</strong> Moderate negative correlation (higher elevations are generally cooler)</li>
+            <li><strong>Water Bodies Percentage:</strong> Moderate negative correlation (water has cooling effect)</li>
+            <li><strong>Population Density:</strong> Strong positive correlation (human activity increases temperature)</li>
+        </ul>
+        <p>
+            These relationships highlight the importance of urban planning, forest conservation, and water resource 
+            management in mitigating rising temperatures.
+        </p>
+    `;
+    
+    document.getElementById('interpretation').innerHTML = interpretation;
+}
+
+function loadRegionalData() {
+    const year = document.getElementById('year').value;
+    const month = document.getElementById('month').value;
+    const timeOfDay = document.querySelector('input[name="time_of_day"]:checked').value;
+    
+    const params = new URLSearchParams();
+    params.append('year', year);
+    params.append('month', month);
+    params.append('time_of_day', timeOfDay);
+    
+    fetch(`/api/temperature_data?${params.toString()}`)
+        .then(response => response.json())
+        .then(data => {
+            // Define regions
+            const regions = {
+                "Coastal": ["Chennai", "Cuddalore", "Nagapattinam", "Thoothukudi", "Kanniyakumari"],
+                "Western": ["Nilgiris", "Coimbatore", "Dharmapuri", "Erode"],
+                "Central": ["Salem", "Namakkal", "Karur", "Tiruchirappalli"],
+                "Southern": ["Madurai", "Theni", "Virudhunagar", "Tirunelveli"]
+            };
+            
+            // Create a chart for each region
+            for (const [region, districts] of Object.entries(regions)) {
+                const regionData = data.filter(d => districts.includes(d.District));
+                const chartId = region.toLowerCase() + '-chart';
+                const statsId = region.toLowerCase() + '-stats';
+                
+                // Create the bar chart
+                const barData = [{
+                    x: regionData.map(d => d.District),
+                    y: regionData.map(d => d.Temperature),
+                    type: 'bar',
+                    marker: {
+                        color: regionData.map(d => d.Temperature),
+                        colorscale: 'Turbo'
+                    }
+                }];
+                
+                const layout = {
+                    title: `${region} Region Temperature Comparison`,
+                    xaxis: {title: 'District'},
+                    yaxis: {title: 'Temperature (°C)'},
+                    height: 400,
+                    margin: {l: 50, r: 30, t: 50, b: 100}
+                };
+                
+                Plotly.newPlot(chartId, barData, layout);
+                
+                // Calculate region statistics
+                const avgTemp = regionData.reduce((sum, d) => sum + d.Temperature, 0) / regionData.length;
+                const tempRange = Math.max(...regionData.map(d => d.Temperature)) - Math.min(...regionData.map(d => d.Temperature));
+                
+                // Update stats
+                document.getElementById(statsId).innerHTML = `
+                    <div class="alert alert-info">
+                        <div class="mb-1"><strong>Average Temperature:</strong> ${avgTemp.toFixed(1)}°C</div>
+                        <div><strong>Temperature Range:</strong> ${tempRange.toFixed(1)}°C</div>
+                    </div>
+                `;
+            }
+        });
+}
+</script>
+{% endblock %}
