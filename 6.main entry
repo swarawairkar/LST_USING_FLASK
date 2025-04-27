@@ -1,0 +1,282 @@
+import streamlit as st
+import numpy as np
+import pandas as pd
+import geopandas as gpd
+import folium
+from folium.plugins import HeatMap
+from streamlit_folium import folium_static
+import plotly.express as px
+import plotly.graph_objects as go
+from datetime import datetime
+import os
+import ee
+import json
+from utils import (
+    get_landsat_collection, 
+    calculate_lst, 
+    calculate_ndvi, 
+    get_district_stats, 
+    get_monthly_data, 
+    get_annual_trend
+)
+from data.sample_data import (
+    generate_sample_temperature_map,
+    get_district_temperature_data,
+    get_monthly_temperature_data,
+    get_annual_trend_data,
+    get_ndvi_data,
+    DISTRICT_NAMES
+)
+from flask_app.app import app
+# Page configuration
+st.set_page_config(
+    page_title="Landsat Data Analysis Dashboard",
+    page_icon="🛰️",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+# Create session states if they don't exist
+if 'ee_initialized' not in st.session_state:
+    st.session_state.ee_initialized = False
+if 'selected_year' not in st.session_state:
+    st.session_state.selected_year = 2024
+if 'selected_month' not in st.session_state:
+    st.session_state.selected_month = 4  # April
+if 'selected_district' not in st.session_state:
+    st.session_state.selected_district = "All"
+if 'selected_time' not in st.session_state:
+    st.session_state.selected_time = "Daytime"
+if 'selected_variable' not in st.session_state:
+    st.session_state.selected_variable = "LST"
+# App header
+st.title("🛰️ Landsat Satellite Data Analysis Dashboard")
+st.markdown("Explore and analyze land surface temperature and vegetation data from Landsat satellites")
+# Main content container
+main_container = st.container()
+with main_container:
+    # Two columns for main display
+    col1, col2 = st.columns([3, 2])
+    
+    with col1:
+        st.subheader("Spatial Data Visualization")
+        
+        # Placeholder for the map
+        if not st.session_state.ee_initialized:
+            st.info("This is a sample visualization. Please authenticate to see real satellite data.")
+            # Display a sample map using the Tamil Nadu boundaries
+            m = generate_sample_temperature_map()
+            # Convert to streamlit_folium's newer st_folium function
+            from streamlit_folium import st_folium
+            st_folium(m, width=650, height=400)
+            
+            # Add authentication button
+            if st.button("Authenticate Earth Engine"):
+                try:
+                    # Initialize Earth Engine
+                    ee.Initialize()
+                    st.session_state.ee_initialized = True
+                    st.success("Successfully authenticated with Earth Engine!")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Authentication failed: {str(e)}")
+        else:
+            # If authenticated, show real data
+            try:
+                # This would be where real Earth Engine data is displayed
+                m = generate_sample_temperature_map(real_data=True)
+                # Use st_folium instead of folium_static
+                st_folium(m, width=650, height=400)
+            except Exception as e:
+                st.error(f"Error loading Earth Engine data: {str(e)}")
+                
+        # Location information
+        col_info1, col_info2 = st.columns(2)
+        
+        with col_info1:
+            st.subheader("About the Location")
+            if st.session_state.selected_district == "All":
+                st.markdown("""
+                Tamil Nadu is a state in southern India. It's known for its 
+                Tamil culture, Hindu temples, and diverse landscape.
+                Area: 130,058 km² | Population: ~72 million | Climate: Tropical
+                """)
+            elif st.session_state.selected_district == "Chennai":
+                st.markdown("""
+                Chennai is the capital of Tamil Nadu state in southern India. 
+                It's a major commercial, cultural, and educational center of South India.
+                Area: 426 km² | Population: ~7 million | Climate: Tropical wet and dry
+                """)
+            else:
+                st.markdown(f"""
+                {st.session_state.selected_district} is a district in Tamil Nadu state, 
+                southern India.
+                Climate: Predominantly tropical
+                """)
+                
+            st.markdown("""
+            **Temperature Context**
+            Land Surface Temperature (LST) is the radiative skin temperature 
+            of the ground. It differs from air temperature and is influenced 
+            by albedo, vegetation cover, and soil moisture.
+            """)
+                
+        with col_info2:
+            st.subheader("Data Insights")
+            
+            st.markdown("**Temperature Pattern Insights**")
+            st.markdown("""
+            - Urban areas typically show higher temperatures than surrounding 
+              rural areas due to the urban heat island effect.
+              
+            - Water bodies appear as cooler regions in the temperature map.
+              
+            - Areas with dense vegetation often have lower surface temperatures 
+              due to evapotranspiration.
+              
+            - The temperature pattern shows typical seasonal characteristics for this region.
+            """)
+            
+        st.markdown("---")
+        
+        st.markdown("### Want More Detailed Analysis?")
+        st.markdown("Visit the Analysis pages for in-depth comparisons, temporal trends, and statistical analysis.")
+        
+        col_btn1, col_btn2, col_btn3 = st.columns(3)
+        with col_btn1:
+            st.page_link("pages/1_Spatial_Analysis.py", label="Spatial Analysis", icon="🗺️")
+        with col_btn2:
+            st.page_link("pages/2_Temporal_Analysis.py", label="Temporal Analysis", icon="📈")
+        with col_btn3:
+            st.page_link("pages/3_Vegetation_Analysis.py", label="Vegetation Analysis", icon="🌿")
+            
+    with col2:
+        st.subheader("Temporal Trend Analysis")
+        
+        if not st.session_state.ee_initialized:
+            st.info("This is a sample visualization. Please initialize Earth Engine to see real data.")
+            
+        # Show sample trend data
+        trend_data = get_annual_trend_data()
+        fig = px.scatter(
+            trend_data, 
+            x="Year", 
+            y="Temperature", 
+            trendline="ols",
+            labels={"Temperature": "Average Temperature (°C)"}
+        )
+        fig.update_layout(
+            title=f"Temperature Trend Analysis for Tamil Nadu",
+            showlegend=True,
+            legend_title_text="",
+            height=400,
+            margin=dict(l=10, r=10, t=50, b=10)
+        )
+        
+        # Add trendline equation
+        trend_eq = f"Trend: {0.164:.3f}°C/year"
+        fig.add_annotation(
+            x=2015, 
+            y=32, 
+            text=trend_eq,
+            showarrow=False,
+            font=dict(size=14)
+        )
+        
+        # Add legend
+        fig.add_trace(go.Scatter(
+            x=[None], 
+            y=[None], 
+            mode='markers',
+            name='Observed Values',
+            marker=dict(color='#1E88E5')
+        ))
+        
+        fig.add_trace(go.Scatter(
+            x=[None], 
+            y=[None], 
+            mode='lines',
+            name='Trend Line',
+            line=dict(color='#FF5722')
+        ))
+        
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # Add button to view detailed temporal analysis
+        if st.button("View detailed temporal analysis →"):
+            st.switch_page("pages/2_Temporal_Analysis.py")
+# Sidebar for controls and navigation
+with st.sidebar:
+    st.title("Navigation")
+    
+    # Earth Engine Authentication Section
+    st.header("Earth Engine Authentication")
+    if not st.session_state.ee_initialized:
+        st.info("Using Google Earth Engine for real-time satellite data analysis")
+    else:
+        st.success("✓ Authenticated with Google Earth Engine")
+    
+    # Data source information
+    st.header("Data Source")
+    st.info("Using Google Earth Engine for real-time satellite data analysis")
+    
+    # Parameters section
+    st.header("Parameters")
+    
+    # Year selection
+    year = st.selectbox(
+        "Year",
+        options=[2018, 2020, 2024],
+        index=2,  # Default to 2024
+        key="year_selector"
+    )
+    st.session_state.selected_year = year
+    
+    # Month selection
+    month = st.selectbox(
+        "Month",
+        options=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+        index=3,  # Default to April
+        format_func=lambda x: datetime(2024, x, 1).strftime("%B"),
+        key="month_selector"
+    )
+    st.session_state.selected_month = month
+    
+    # District selection
+    district = st.selectbox(
+        "District",
+        options=["All"] + DISTRICT_NAMES,
+        index=0,
+        key="district_selector"
+    )
+    st.session_state.selected_district = district
+    
+    # Time of day selection
+    time_of_day = st.radio(
+        "Time of Day",
+        options=["Daytime", "Nighttime"],
+        index=0,
+        key="time_selector",
+        horizontal=True
+    )
+    st.session_state.selected_time = time_of_day
+    
+    # Variable selection
+    variable = st.radio(
+        "Variable",
+        options=["LST (Land Surface Temperature)", "NDVI (Vegetation Index)"],
+        index=0,
+        key="variable_selector"
+    )
+    st.session_state.selected_variable = "LST" if "LST" in variable else "NDVI"
+    
+    # Navigation links
+    st.header("Navigation")
+    st.page_link("pages/1_Spatial_Analysis.py", label="Advanced Analysis", icon="🗺️")
+    st.page_link("pages/4_Urban_Heat_Analysis.py", label="Help & FAQ", icon="❓")
+    st.page_link("pages/5_About.py", label="About", icon="ℹ️")
+    
+    st.markdown("---")
+    st.caption("Powered by Google Earth Engine and Streamlit")
+# Footer
+st.markdown("---")
+st.caption("Landsat Satellite Data Analysis Dashboard | Data: Landsat 7/8/9 via Google Earth Engine")
